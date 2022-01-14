@@ -59,7 +59,7 @@ namespace vg {
 /// This defines a range of values to test, from start to <=end, going up by step
 template<typename Number>
 struct Range {
-    
+
     // Expose the thing we are a range of
     using type = Number;
 
@@ -69,12 +69,12 @@ struct Range {
     Number end = 0;
     /// Represents the step to move by each tick
     Number step = 1;
-    
+
     /// Represents the current value the range is at
     Number here = 0;
     /// Determines if we are running or not (i.e. is here valid)
     bool running = false;
-    
+
     /// This will be called when we want to reset_chain what we are chained onto.
     function<void(void)> reset_chain_parent = []() {
     };
@@ -82,27 +82,27 @@ struct Range {
     function<bool(void)> tick_chain_parent = []() {
         return false;
     };
-    
+
     /// Default constructor
     Range() {
         // Nothing to do!
     }
-    
+
     /// Construct from a single value
     Range(const Number& val): start(val), end(val) {
         // Nothing to do!
     }
-    
+
     /// Copy, preserving destination links
     Range(const Range& other): start(other.start), end(other.end), step(other.step) {
         // Nothing to do
     }
-    
+
     /// Move, preserving destination links
     Range(Range&& other): start(other.start), end(other.end), step(other.step) {
         // Nothing to do
     }
-    
+
     /// Copy assignment, preserving destination links
     Range& operator=(const Range& other) {
         start = other.start;
@@ -110,7 +110,7 @@ struct Range {
         step = other.step;
         return *this;
     }
-    
+
     /// Move assignment, preserving destination links
     Range& operator=(Range&& other) {
         start = other.start;
@@ -118,7 +118,7 @@ struct Range {
         step = other.step;
         return *this;
     }
-    
+
     /// Check the range for usefulness
     inline bool is_valid() {
         if (start != end && step == 0) {
@@ -126,22 +126,22 @@ struct Range {
             cerr << "Invalid range (no movement): " << start << " to " << end << " step " << step << endl;
             return false;
         }
-        
+
         if (start > end && step > 0) {
             // We're going the wrong way
             cerr << "Invalid range (need to go down): " << start << " to " << end << " step " << step << endl;
             return false;
         }
-        
+
         if (start < end && step < 0) {
             // We're going the other wrong way
             cerr << "Invalid range (need to go up): " << start << " to " << end << " step " << step << endl;
             return false;
         }
-        
+
         return true;
     }
-    
+
     /// Convert to Number with the current value
     operator Number() const {
         if (running) {
@@ -150,19 +150,19 @@ struct Range {
             return start;
         }
     }
-    
+
     /// Start at our start value
     void reset() {
         here = start;
         running = true;
     }
-    
+
     /// Start us and all the things we are chained onto at their start values
     void reset_chain() {
         reset();
         reset_chain_parent();
     }
-    
+
     /// Increment our value.
     /// Returns true if the new value needs processing, and false if we have left or would leave the range.
     bool tick() {
@@ -170,16 +170,16 @@ struct Range {
             // We are at the end
             return false;
         }
-        
+
         here += step;
         if ((step > 0 && here > end) || (step < 0 && here < end)) {
             // We have passed the end (for things like double)
             return false;
         }
-        
+
         return true;
     }
-    
+
     /// Increment our value.
     /// If it overflows, tock_chain whatever we are chained onto, and reset and succeed if that succeeds.
     bool tick_chain() {
@@ -198,13 +198,13 @@ struct Range {
             }
         }
     }
-    
+
     /// Chain the given range onto this one.
     /// Return the passed-in range.
     /// Neither range may be moved away!
     template<typename Other>
     Range<Other>& chain(Range<Other>& next) {
-        
+
         // Attach next to us
         next.reset_chain_parent = [&]() {
             this->reset_chain();
@@ -212,17 +212,17 @@ struct Range {
         next.tick_chain_parent = [&]() {
             return this->tick_chain();
         };
-        
+
         return next;
     }
-    
+
     /// Get a function that runs another function for each combination of
     /// values for this Range and all Ranges it has been chained onto.
     function<void(const function<void(void)>&)> get_iterator() {
         return [&](const function<void(void)>& iteratee) {
             // Start
             reset_chain();
-            
+
             do {
                 // Run iteratee
                 iteratee();
@@ -250,7 +250,7 @@ template<typename Result>
 inline bool parse(const string& arg, typename enable_if<is_instantiation_of<Result, Range>::value, Result>::type& dest) {
 
     auto colon1 = arg.find(':');
-    
+
     if (colon1 == string::npos) {
         // No colons here. Parse one number.
         if (!parse<typename Result::type>(arg, dest.start)) {
@@ -289,7 +289,7 @@ inline bool parse(const string& arg, typename enable_if<is_instantiation_of<Resu
             if (!parse<typename Result::type>(arg.substr(colon2 + 1), dest.step)) {
                 return false;
             }
-            
+
             return dest.is_valid();
         }
     }
@@ -343,6 +343,7 @@ void help_giraffe(char** argv) {
     << "  -c, --hit-cap INT             use all minimizers with at most INT hits [10]" << endl
     << "  -C, --hard-hit-cap INT        ignore all minimizers with more than INT hits [500]" << endl
     << "  -F, --score-fraction FLOAT    select minimizers between hit caps until score is FLOAT of total [0.9]" << endl
+    << "  -U, --max-min INT             use at maximum INT unique non-overlapping minimizers [500]" << endl
     << "  -D, --distance-limit INT      cluster using this distance limit [200]" << endl
     << "  -e, --max-extensions INT      extend up to INT clusters [800]" << endl
     << "  -a, --max-alignments INT      align up to INT extensions [8]" << endl
@@ -385,10 +386,10 @@ int main_giraffe(int argc, char** argv) {
     #define OPT_RESCUE_SEED_LIMIT 1009
     #define OPT_REF_PATHS 1010
     #define OPT_SHOW_WORK 1011
-    
+
 
     // initialize parameters with their default options
-    
+
     // This holds and manages finding our indexes.
     IndexRegistry registry = VGIndexes::get_vg_index_registry();
     string output_basename;
@@ -397,6 +398,8 @@ int main_giraffe(int argc, char** argv) {
     Range<size_t> distance_limit = 200;
     Range<size_t> hit_cap = 10, hard_hit_cap = 500;
     Range<double> minimizer_score_fraction = 0.9;
+    Range<size_t> max_unique_min = 500;
+
     bool show_progress = false;
     // Should we try chaining or just give up if we can't find a full length gapless alignment?
     bool do_dp = true;
@@ -421,7 +424,7 @@ int main_giraffe(int argc, char** argv) {
     Range<double> cluster_score = 50;
     //Unless they are the second best and within this amount beyond that
     Range<double> pad_cluster_score = 0;
-    //Throw away clusters with coverage this amount below the best 
+    //Throw away clusters with coverage this amount below the best
     Range<double> cluster_coverage = 0.3;
     //Throw away extension sets with scores that are this amount below the best
     Range<double> extension_set = 20;
@@ -442,7 +445,7 @@ int main_giraffe(int argc, char** argv) {
     double fragment_stdev = 0.0;
     //How many sdevs to we look out when clustering pairs?
     double cluster_stdev = 2.0;
-    //How many stdevs do we look out when rescuing? 
+    //How many stdevs do we look out when rescuing?
     double rescue_stdev = 4.0;
     // Attempt rescue with up to this many seeds.
     size_t rescue_seed_limit = 100;
@@ -466,6 +469,7 @@ int main_giraffe(int argc, char** argv) {
         .chain(hit_cap)
         .chain(hard_hit_cap)
         .chain(minimizer_score_fraction)
+        .chain(max_unique_min)
         .chain(rescue_attempts)
         .chain(max_multimaps)
         .chain(max_extensions)
@@ -476,7 +480,7 @@ int main_giraffe(int argc, char** argv) {
         .chain(extension_set)
         .chain(extension_score)
         .get_iterator();
-    
+
 
     // Formats for alignment output.
     std::string output_format = "GAM";
@@ -538,6 +542,7 @@ int main_giraffe(int argc, char** argv) {
             {"extension-score", required_argument, 0, 'v'},
             {"extension-set", required_argument, 0, 'w'},
             {"score-fraction", required_argument, 0, 'F'},
+            {"max-min", required_argument, 0, 'U'},
             {"no-dp", no_argument, 0, 'O'},
             {"rescue-attempts", required_argument, 0, 'r'},
             {"rescue-algorithm", required_argument, 0, 'A'},
@@ -555,7 +560,7 @@ int main_giraffe(int argc, char** argv) {
         };
 
         int option_index = 0;
-        c = getopt_long (argc, argv, "hZ:x:g:H:m:s:d:pG:f:iM:N:R:o:Pnb:c:C:D:F:e:a:S:u:v:w:Ot:r:A:L:",
+        c = getopt_long (argc, argv, "hZ:x:g:H:m:s:d:pG:f:iM:N:R:o:Pnb:c:C:D:F:e:a:S:u:v:w:Ot:r:A:L:U:",
                          long_options, &option_index);
 
 
@@ -589,14 +594,14 @@ int main_giraffe(int argc, char** argv) {
                 }
                 if (!std::ifstream(optarg).is_open()) {
                     cerr << "error:[vg giraffe] Couldn't open graph file " << optarg << endl;
-                    exit(1); 
+                    exit(1);
                 }
                 registry.provide("XG", optarg);
-                
+
                 // If we have an xg we probably want to use its name as the base name.
                 // But see -g.
                 registry.set_prefix(split_ext(optarg).first);
-                
+
                 break;
 
             case 'g':
@@ -606,14 +611,14 @@ int main_giraffe(int argc, char** argv) {
                 }
                 if (!std::ifstream(optarg).is_open()) {
                     cerr << "error:[vg giraffe] Couldn't open GBWTGraph file " << optarg << endl;
-                    exit(1); 
+                    exit(1);
                 }
                 registry.provide("GBWTGraph", optarg);
-                
+
                 // But if we have a GBWTGraph we probably want to use *its* name as the base name.
                 // Whichever is specified last will win, unless we also have a FASTA input name.
                 registry.set_prefix(split_ext(optarg).first);
-                
+
                 break;
 
             case 'H':
@@ -623,11 +628,11 @@ int main_giraffe(int argc, char** argv) {
                 }
                 if (!std::ifstream(optarg).is_open()) {
                     cerr << "error:[vg giraffe] Couldn't open GBWT file " << optarg << endl;
-                    exit(1); 
+                    exit(1);
                 }
                 registry.provide("Giraffe GBWT", optarg);
                 break;
-                
+
             case 'm':
                 if (!optarg || !*optarg) {
                     cerr << "error:[vg giraffe] Must provide minimizer file with -m." << endl;
@@ -635,11 +640,11 @@ int main_giraffe(int argc, char** argv) {
                 }
                 if (!std::ifstream(optarg).is_open()) {
                     cerr << "error:[vg giraffe] Couldn't open minimizer file " << optarg << endl;
-                    exit(1); 
+                    exit(1);
                 }
                 registry.provide("Minimizers", optarg);
                 break;
-                
+
             case 'd':
                 if (!optarg || !*optarg) {
                     cerr << "error:[vg giraffe] Must provide distance index file with -d." << endl;
@@ -647,7 +652,7 @@ int main_giraffe(int argc, char** argv) {
                 }
                 if (!std::ifstream(optarg).is_open()) {
                     cerr << "error:[vg giraffe] Couldn't open distance index file " << optarg << endl;
-                    exit(1); 
+                    exit(1);
                 }
                 registry.provide("Giraffe Distance Index", optarg);
                 break;
@@ -655,7 +660,7 @@ int main_giraffe(int argc, char** argv) {
             case 'p':
                 show_progress = true;
                 break;
-                
+
             case 'G':
                 gam_filename = optarg;
                 if (gam_filename.empty()) {
@@ -663,7 +668,7 @@ int main_giraffe(int argc, char** argv) {
                     exit(1);
                 }
                 break;
-            
+
             case 'f':
                 if (fastq_filename_1.empty()) {
                     fastq_filename_1 = optarg;
@@ -689,15 +694,15 @@ int main_giraffe(int argc, char** argv) {
                 interleaved = true;
                 paired = true;
                 break;
-                
+
             case 'M':
                 max_multimaps = parse<Range<size_t>>(optarg);
                 break;
-            
+
             case 'N':
                 sample_name = optarg;
                 break;
-                
+
             case 'R':
                 read_group = optarg;
                 break;
@@ -714,11 +719,11 @@ int main_giraffe(int argc, char** argv) {
                     }
                 }
                 break;
-                
+
             case OPT_REF_PATHS:
                 ref_paths_name = optarg;
                 break;
-                
+
             case 'P':
                 prune_anchors = true;
                 break;
@@ -726,11 +731,11 @@ int main_giraffe(int argc, char** argv) {
             case 'n':
                 discard_alignments = true;
                 break;
-                
+
             case OPT_OUTPUT_BASENAME:
                 output_basename = optarg;
                 break;
-            
+
             case OPT_REPORT_NAME:
                 report_name = optarg;
                 break;
@@ -776,7 +781,18 @@ int main_giraffe(int argc, char** argv) {
                     hard_hit_cap = cap;
                 }
                 break;
-                
+
+            case 'U':
+                {
+                    auto maxmin = parse<Range<size_t>>(optarg);
+                    if (maxmin <= 0) {
+                        cerr << "error: [vg giraffe] Maximum unique minimizer (" << maxmin << ") must be a positive integer" << endl;
+                        exit(1);
+                    }
+                    max_unique_min = maxmin;
+                }
+                break;
+
             case 'D':
                 {
                     auto limit = parse<Range<size_t>>(optarg);
@@ -824,7 +840,7 @@ int main_giraffe(int argc, char** argv) {
                     cluster_score = score;
                 }
                 break;
-                
+
             case 'S':
                 {
                     auto score = parse<Range<double>>(optarg);
@@ -866,11 +882,11 @@ int main_giraffe(int argc, char** argv) {
                     extension_set = score;
                 }
                 break;
-                
+
             case 'O':
                 do_dp = false;
                 break;
-                
+
             case 'r':
                 {
                     forced_rescue_attempts = true;
@@ -925,16 +941,16 @@ int main_giraffe(int argc, char** argv) {
             case OPT_TRACK_PROVENANCE:
                 track_provenance = true;
                 break;
-            
+
             case OPT_TRACK_CORRECTNESS:
                 track_provenance = true;
                 track_correctness = true;
                 break;
-                
+
             case OPT_SHOW_WORK:
                 show_work = true;
                 break;
-                
+
             case 't':
             {
                 int num_threads = parse<int>(optarg);
@@ -945,7 +961,7 @@ int main_giraffe(int argc, char** argv) {
                 omp_set_num_threads(num_threads);
             }
                 break;
-                
+
             case 'h':
             case '?':
             default:
@@ -955,13 +971,13 @@ int main_giraffe(int argc, char** argv) {
         }
     }
 
-   
+
     // Get positional arguments before validating user intent
     if (have_input_file(optind, argc, argv)) {
         // Must be the FASTA, but check.
-        
+
         string fasta_filename = get_input_file_name(optind, argc, argv);
-        
+
         auto fasta_parts = split_ext(fasta_filename);
         if (fasta_parts.second == "gz") {
             fasta_parts = split_ext(fasta_parts.first);
@@ -970,17 +986,17 @@ int main_giraffe(int argc, char** argv) {
             cerr << "error:[vg giraffe] FASTA file " << fasta_filename << " is not named like a FASTA" << endl;
             exit(1);
         }
-        
+
         registry.provide("Reference FASTA", fasta_filename);
         // Everything else should be named like the FASTA by default
         registry.set_prefix(fasta_parts.first);
-        
+
         if (have_input_file(optind, argc, argv)) {
             // Next one must be VCF, but check.
             // TODO: Unify with FASTA check?
-            
+
             string vcf_filename = get_input_file_name(optind, argc, argv);
-            
+
             auto vcf_parts = split_ext(vcf_filename);
             if (vcf_parts.second == "gz") {
                 vcf_parts = split_ext(vcf_parts.first);
@@ -989,10 +1005,10 @@ int main_giraffe(int argc, char** argv) {
                 cerr << "error:[vg giraffe] VCF file " << vcf_filename << " is not named like a VCF" << endl;
                 exit(1);
             }
-            
+
             // Determine if it is phased or not
             string file_type = IndexRegistry::vcf_is_phased(vcf_filename) ? "VCF w/ Phasing" : "VCF";
-            
+
             // Feed it to the index registry to maybe use
             registry.provide(file_type, vcf_filename);
         }
@@ -1003,22 +1019,22 @@ int main_giraffe(int argc, char** argv) {
         rescue_attempts = 0;
         rescue_algorithm = MinimizerMapper::rescue_none;
     }
-    
+
     // Now all the arguments are parsed, so see if they make sense
-    
+
     // Decide if we are outputting to an htslib format
     bool hts_output = (output_format == "SAM" || output_format == "BAM" || output_format == "CRAM");
-    
+
     if (!ref_paths_name.empty() && !hts_output) {
         cerr << "warning:[vg giraffe] Reference path file (--ref-paths) is only used when output format (-o) is SAM, BAM, or CRAM." << endl;
         ref_paths_name = "";
     }
-    
+
     if (output_format != "GAM" && !output_basename.empty()) {
         cerr << "error:[vg giraffe] Using an output basename (--output-basename) only makes sense for GAM format (-o)" << endl;
         exit(1);
     }
-    
+
     if (interleaved && !fastq_filename_2.empty()) {
         cerr << "error:[vg giraffe] Cannot designate both interleaved paired ends (-i) and separate paired end file (-f)." << endl;
         exit(1);
@@ -1028,7 +1044,7 @@ int main_giraffe(int argc, char** argv) {
         cerr << "error:[vg giraffe] Cannot designate both FASTQ input (-f) and GAM input (-G) in same run." << endl;
         exit(1);
     }
-    
+
     if (have_input_file(optind, argc, argv)) {
         // TODO: work out how to interpret additional files as reads.
         cerr << "error:[vg giraffe] Extraneous input file: " << get_input_file_name(optind, argc, argv) << endl;
@@ -1046,7 +1062,7 @@ int main_giraffe(int argc, char** argv) {
     if ((forced_mean || forced_stdev || forced_rescue_attempts) && (!paired)) {
         cerr << "warning:[vg giraffe] Attempting to set paired-end parameters but running in single-end mode" << endl;
     }
-    
+
     // The IndexRegistry doesn't try to infer index files based on the
     // basename, so do that here. We can have multiple extension options that
     // we try in order of priority.
@@ -1079,23 +1095,23 @@ int main_giraffe(int argc, char** argv) {
     }
 
     // create in-memory objects
-    
+
     // Don't try and use all the memory.
     // TODO: add memory options like autoindex?
     registry.set_target_memory_usage(IndexRegistry::get_system_memory() / 2);
-    
+
     auto index_targets = VGIndexes::get_default_giraffe_indexes();
     if (track_correctness || hts_output) {
         // We also need an XG
         index_targets.push_back("XG");
     }
-    
+
 #ifdef debug
     for (auto& needed : index_targets) {
         cerr << "Want index: " << needed << endl;
     }
 #endif
-    
+
     try {
         registry.make_indexes(index_targets);
     }
@@ -1104,7 +1120,7 @@ int main_giraffe(int argc, char** argv) {
         cerr << ex.what();
         return 1;
     }
-   
+
 #ifdef debug
     for (auto& completed : registry.completed_indexes()) {
         cerr << "Have index: " << completed << endl;
@@ -1113,7 +1129,7 @@ int main_giraffe(int argc, char** argv) {
         }
     }
 #endif
-    
+
     // If we are tracking correctness, we will fill this in with a graph for
     // getting offsets along ref paths.
     PathPositionHandleGraph* path_position_graph = nullptr;
@@ -1127,7 +1143,7 @@ int main_giraffe(int argc, char** argv) {
         // Overlay is owned by the overlay_helper, if one is needed.
         path_position_graph = overlay_helper.apply(graph.get());
     }
-    
+
     // Grab the minimizer index
     auto minimizer_index = vg::io::VPKG::load_one<gbwtgraph::DefaultMinimizerIndex>(registry.require("Minimizers").at(0));
 
@@ -1146,13 +1162,13 @@ int main_giraffe(int argc, char** argv) {
         minimizer_mapper.force_fragment_length_distr(fragment_mean, fragment_stdev);
     }
 
-    
+
     std::chrono::time_point<std::chrono::system_clock> init = std::chrono::system_clock::now();
     std::chrono::duration<double> init_seconds = init - launch;
     if (show_progress) {
         cerr << "Loading and initialization: " << init_seconds.count() << " seconds" << endl;
     }
-    
+
     // Set up to write a report of mapping speed if requested, instead of just dumping to stderr.
     ofstream report;
     if (!report_name.empty()) {
@@ -1163,22 +1179,22 @@ int main_giraffe(int argc, char** argv) {
             cerr << "error[vg giraffe]: Could not open report file " << report_name << endl;
             exit(1);
         }
-        
+
         // Add a header
         report << "#file\treads/second/thread" << endl;
     }
 
     // We need to loop over all the ranges...
     for_each_combo([&]() {
-    
+
         // Work out where to send the output. Default to stdout.
         string output_filename = "-";
         if (!output_basename.empty()) {
             // Compose a name using all the parameters.
             stringstream s;
-            
+
             s << output_basename;
-            
+
             if (interleaved) {
                 s << "-i";
             }
@@ -1186,6 +1202,7 @@ int main_giraffe(int argc, char** argv) {
             s << "-c" << hit_cap;
             s << "-C" << hard_hit_cap;
             s << "-F" << minimizer_score_fraction;
+            s << "-U" << max_unique_min;
             s << "-M" << max_multimaps;
             s << "-e" << max_extensions;
             s << "-a" << max_alignments;
@@ -1193,12 +1210,12 @@ int main_giraffe(int argc, char** argv) {
             s << "-u" << cluster_coverage;
             s << "-w" << extension_set;
             s << "-v" << extension_score;
-            
+
             s << ".gam";
-            
+
             output_filename = s.str();
         }
-    
+
         if (show_progress) {
             if (discard_alignments) {
                 cerr << "Discarding output alignments" << endl;
@@ -1210,7 +1227,7 @@ int main_giraffe(int argc, char** argv) {
         if (show_progress && interleaved) {
             cerr << "--interleaved" << endl;
         }
-        
+
         if (show_progress && prune_anchors) {
             cerr << "--prune-low-cplx" << endl;
         }
@@ -1231,6 +1248,11 @@ int main_giraffe(int argc, char** argv) {
         minimizer_mapper.minimizer_score_fraction = minimizer_score_fraction;
 
         if (show_progress) {
+            cerr << "--max-min " << max_unique_min << endl;
+        }
+        minimizer_mapper.max_unique_min = max_unique_min;
+
+        if (show_progress) {
             cerr << "--max-extensions " << max_extensions << endl;
         }
         minimizer_mapper.max_extensions = max_extensions;
@@ -1244,7 +1266,7 @@ int main_giraffe(int argc, char** argv) {
             cerr << "--cluster-score " << cluster_score << endl;
         }
         minimizer_mapper.cluster_score_threshold = cluster_score;
-        
+
         if (show_progress) {
             cerr << "--pad-cluster-score " << pad_cluster_score << endl;
         }
@@ -1279,17 +1301,17 @@ int main_giraffe(int argc, char** argv) {
             cerr << "--distance-limit " << distance_limit << endl;
         }
         minimizer_mapper.distance_limit = distance_limit;
-        
+
         if (show_progress && track_provenance) {
             cerr << "--track-provenance " << endl;
         }
         minimizer_mapper.track_provenance = track_provenance;
-        
+
         if (show_progress && track_correctness) {
             cerr << "--track-correctness " << endl;
         }
         minimizer_mapper.track_correctness = track_correctness;
-        
+
         if (show_progress && show_work) {
             cerr << "--show-work " << endl;
         }
@@ -1297,7 +1319,7 @@ int main_giraffe(int argc, char** argv) {
 
         if (show_progress && paired) {
             if (forced_mean && forced_stdev) {
-                cerr << "--fragment-mean " << fragment_mean << endl; 
+                cerr << "--fragment-mean " << fragment_mean << endl;
                 cerr << "--fragment-stdev " << fragment_stdev << endl;
             }
             cerr << "--paired-distance-limit " << cluster_stdev << endl;
@@ -1321,17 +1343,17 @@ int main_giraffe(int argc, char** argv) {
 
         // Set up counters per-thread for total reads mapped
         vector<size_t> reads_mapped_by_thread(thread_count, 0);
-        
+
         // For timing, we may run one thread first and then switch to all threads. So track both start times.
         std::chrono::time_point<std::chrono::system_clock> first_thread_start;
         std::chrono::time_point<std::chrono::system_clock> all_threads_start;
-        
+
         // We also time in terms of CPU time
         clock_t cpu_time_before;
-        
+
         // We may also have access to perf stats.
         vector<int> perf_fds;
-        
+
 #ifdef __linux__
         // Set up a counter for executed instructions.
         // See <https://stackoverflow.com/a/64863392/402891>
@@ -1342,42 +1364,42 @@ int main_giraffe(int argc, char** argv) {
         perf_config.config = PERF_COUNT_HW_INSTRUCTIONS;
         perf_config.exclude_kernel = 1;
         perf_config.exclude_hv = 1;
-        
+
         perf_fds.resize(thread_count);
-        
+
         perf_fds[omp_get_thread_num()] = perf_event_open(&perf_config, 0, -1, -1, 0);
         if (show_progress && perf_fds[omp_get_thread_num()] == -1) {
             int problem = errno;
             cerr << "Not counting CPU instructions because perf events are unavailable: " << strerror(problem) << endl;
             perf_fds.clear();
         }
-        
+
         // Each OMP thread will call this to make sure perf is on.
         auto ensure_perf_for_thread = [&]() {
             if (!perf_fds.empty() && perf_fds[omp_get_thread_num()] == 0) {
                 perf_fds[omp_get_thread_num()] = perf_event_open(&perf_config, 0, -1, -1, 0);
             }
         };
-        
+
         // Main thread will call this to turn it off
         auto stop_perf_for_thread = [&]() {
             if (!perf_fds.empty() && perf_fds[omp_get_thread_num()] != 0) {
                 ioctl(perf_fds[omp_get_thread_num()], PERF_EVENT_IOC_DISABLE, 0);
             }
         };
-        
+
         // Main thread will call this when mapping starts to reset the counter.
         auto reset_perf_for_thread = [&]() {
             if (!perf_fds.empty() && perf_fds[omp_get_thread_num()] != 0) {
                 ioctl(perf_fds[omp_get_thread_num()], PERF_EVENT_IOC_RESET, 0);
             }
         };
-        
+
         // TODO: we won't count the output thread, but it will appear in CPU time!
 #endif
 
         {
-        
+
             // Look up all the paths we might need to surject to.
             vector<tuple<path_handle_t, size_t, size_t>> paths;
             if (hts_output) {
@@ -1385,16 +1407,17 @@ int main_giraffe(int argc, char** argv) {
                 assert(path_position_graph != nullptr);
                 paths = get_sequence_dictionary(ref_paths_name, *path_position_graph);
             }
-            
+
             // Set up output to an emitter that will handle serialization and surjection.
             // Unless we want to discard all the alignments in which case do that.
             // We send along the positional graph when we have it, and otherwise we send the GBWTGraph which is sufficient for GAF output.
             unique_ptr<AlignmentEmitter> alignment_emitter = discard_alignments ?
                 make_unique<NullAlignmentEmitter>() :
-                get_alignment_emitter("-", output_format, paths, thread_count,
+                // get_alignment_emitter("-", output_format, paths, thread_count,
+                get_alignment_emitter(output_filename, output_format, paths, thread_count,
                     path_position_graph ? (const HandleGraph*)path_position_graph : (const HandleGraph*)&(gbz->graph),
                     ALIGNMENT_EMITTER_FLAG_HTS_PRUNE_SUSPICIOUS_ANCHORS * prune_anchors);
-            
+
 #ifdef USE_CALLGRIND
             // We want to profile the alignment, not the loading.
             CALLGRIND_START_INSTRUMENTATION;
@@ -1403,7 +1426,7 @@ int main_giraffe(int argc, char** argv) {
             // Start timing overall mapping time now that indexes are loaded.
             first_thread_start = std::chrono::system_clock::now();
             cpu_time_before = clock();
-            
+
 #ifdef __linux__
             reset_perf_for_thread();
 #endif
@@ -1416,7 +1439,7 @@ int main_giraffe(int argc, char** argv) {
                 // note: sufficient to have only one buffer because multithreading code enforces single threaded mode
                 // during distribution estimation
                 vector<pair<Alignment, Alignment>> ambiguous_pair_buffer;
-                
+
                 // Track whether the distribution was ready, so we can detect when it becomes ready and capture the all-threads start time.
                 bool distribution_was_ready = false;
 
@@ -1426,7 +1449,7 @@ int main_giraffe(int argc, char** argv) {
                     if (is_ready && !distribution_was_ready) {
                         // It has become ready now.
                         distribution_was_ready = true;
-                        
+
                         if (show_progress) {
                             // Report that it is now ready
                             #pragma omp critical (cerr)
@@ -1434,25 +1457,25 @@ int main_giraffe(int argc, char** argv) {
                                 cerr << "Using fragment length estimate: " << minimizer_mapper.get_fragment_length_mean() << " +/- " << minimizer_mapper.get_fragment_length_stdev() << endl;
                             }
                         }
-                        
+
                         // Remember when now is.
                         all_threads_start = std::chrono::system_clock::now();
                     }
                     return is_ready;
                 };
-                
+
                 // Define a way to force the distribution ready
                 auto require_distribution_finalized = [&]() {
                     if (!minimizer_mapper.fragment_distr_is_finalized()){
                         cerr << "warning[vg::giraffe]: Finalizing fragment length distribution before reaching maximum sample size" << endl;
-                        cerr << "                      mapped " << minimizer_mapper.get_fragment_length_sample_size() 
+                        cerr << "                      mapped " << minimizer_mapper.get_fragment_length_sample_size()
                              << " reads single ended with " << ambiguous_pair_buffer.size() << " pairs of reads left unmapped" << endl;
-                        cerr << "                      mean: " << minimizer_mapper.get_fragment_length_mean() << ", stdev: " 
+                        cerr << "                      mean: " << minimizer_mapper.get_fragment_length_mean() << ", stdev: "
                              << minimizer_mapper.get_fragment_length_stdev() << endl;
                         minimizer_mapper.finalize_fragment_length_distr();
                     }
                 };
-                
+
                 // Define how to align and output a read pair, in a thread.
                 auto map_read_pair = [&](Alignment& aln1, Alignment& aln2) {
 #ifdef __linux__
@@ -1464,7 +1487,7 @@ int main_giraffe(int argc, char** argv) {
                     pair<vector<Alignment>, vector<Alignment>> mapped_pairs = minimizer_mapper.map_paired(aln1, aln2, ambiguous_pair_buffer);
                     if (!mapped_pairs.first.empty() && !mapped_pairs.second.empty()) {
                         //If we actually tried to map this paired end
-                        
+
                         // Work out whether it could be properly paired or not, if that is relevant.
                         // If we're here, let the read be properly paired in
                         // HTSlib terms no matter how far away it is in linear
@@ -1482,7 +1505,7 @@ int main_giraffe(int argc, char** argv) {
                         // Record that we mapped a read.
                         reads_mapped_by_thread.at(omp_get_thread_num()) += 2;
                     }
-                    
+
                     if (!minimizer_mapper.fragment_distr_is_finalized() && ambiguous_pair_buffer.size() >= MAX_BUFFERED_PAIRS) {
                         // We risk running out of memory if we keep this up.
                         cerr << "warning[vg::giraffe]: Encountered " << ambiguous_pair_buffer.size() << " ambiguously-paired reads before finding enough" << endl
@@ -1529,20 +1552,20 @@ int main_giraffe(int argc, char** argv) {
 
                 // All the threads start at once.
                 all_threads_start = first_thread_start;
-            
+
                 // Define how to align and output a read, in a thread.
                 auto map_read = [&](Alignment& aln) {
 #ifdef __linux__
                     ensure_perf_for_thread();
 #endif
                     toUppercaseInPlace(*aln.mutable_sequence());
-                
+
                     // Map the read with the MinimizerMapper.
                     minimizer_mapper.map(aln, *alignment_emitter);
                     // Record that we mapped a read.
                     reads_mapped_by_thread.at(omp_get_thread_num())++;
                 };
-                    
+
                 if (!gam_filename.empty()) {
                     // GAM file to remap
                     get_input_file(gam_filename, [&](istream& in) {
@@ -1550,29 +1573,29 @@ int main_giraffe(int argc, char** argv) {
                         vg::io::for_each_parallel<Alignment>(in, map_read);
                     });
                 }
-                
+
                 if (!fastq_filename_1.empty()) {
                     // FASTQ file to map, map all its reads in parallel.
                     fastq_unpaired_for_each_parallel(fastq_filename_1, map_read);
                 }
             }
-        
+
         } // Make sure alignment emitter is destroyed and all alignments are on disk.
-        
+
         // Now mapping is done
         std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
         clock_t cpu_time_after = clock();
 #ifdef __linux__
         stop_perf_for_thread();
 #endif
-        
+
         // Compute wall clock elapsed
         std::chrono::duration<double> all_threads_seconds = end - all_threads_start;
         std::chrono::duration<double> first_thread_additional_seconds = all_threads_start - first_thread_start;
-        
+
         // Compute CPU time elapsed
         double cpu_seconds = (cpu_time_after - cpu_time_before) / (double)CLOCKS_PER_SEC;
-        
+
         // Compute instructions used
         long long total_instructions = 0;
         for (auto& perf_fd : perf_fds) {
@@ -1590,33 +1613,33 @@ int main_giraffe(int argc, char** argv) {
                 total_instructions += thread_instructions;
             }
         }
-        
+
         // How many reads did we map?
         size_t total_reads_mapped = 0;
         for (auto& reads_mapped : reads_mapped_by_thread) {
             total_reads_mapped += reads_mapped;
         }
-        
+
         // Compute speed (as reads per thread-second)
         double reads_per_second_per_thread = total_reads_mapped / (all_threads_seconds.count() * thread_count + first_thread_additional_seconds.count());
         // And per CPU second (including any IO threads)
         double reads_per_cpu_second = total_reads_mapped / cpu_seconds;
         double mega_instructions_per_read = total_instructions / (double)total_reads_mapped / 1E6;
         double mega_instructions_per_second = total_instructions / cpu_seconds / 1E6;
-        
+
         if (show_progress) {
             // Log to standard error
             cerr << "Mapped " << total_reads_mapped << " reads across "
                 << thread_count << " threads in "
-                << all_threads_seconds.count() << " seconds with " 
+                << all_threads_seconds.count() << " seconds with "
                 << first_thread_additional_seconds.count() << " additional single-threaded seconds." << endl;
             cerr << "Mapping speed: " << reads_per_second_per_thread
                 << " reads per second per thread" << endl;
-            
+
             cerr << "Used " << cpu_seconds << " CPU-seconds (including output)." << endl;
             cerr << "Achieved " << reads_per_cpu_second
                 << " reads per CPU-second (including output)" << endl;
-            
+
             if (total_instructions != 0) {
                 cerr << "Used " << total_instructions << " CPU instructions (not including output)." << endl;
                 cerr << "Mapping slowness: " << mega_instructions_per_read
@@ -1626,15 +1649,15 @@ int main_giraffe(int argc, char** argv) {
 
             cerr << "Memory footprint: " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
         }
-        
-        
+
+
         if (report) {
             // Log output filename and mapping speed in reads/second/thread to report TSV
             report << output_filename << "\t" << reads_per_second_per_thread << endl;
         }
-        
+
     });
-        
+
     return 0;
 }
 

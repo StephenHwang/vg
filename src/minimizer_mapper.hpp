@@ -1,7 +1,7 @@
 #ifndef VG_MINIMIZER_MAPPER_HPP_INCLUDED
 #define VG_MINIMIZER_MAPPER_HPP_INCLUDED
 
-/** 
+/**
  * \file minimizer_mapper.hpp
  * Defines a mapper that uses the minimizer index and GBWT-based extension.
  */
@@ -44,17 +44,17 @@ public:
      * TODO: Can't be const because the clusterer's cluster_seeds isn't const.
      */
     void map(Alignment& aln, AlignmentEmitter& alignment_emitter);
-    
+
     /**
      * Map the given read. Return a vector of alignments that it maps to, winner first.
      */
     vector<Alignment> map(Alignment& aln);
-    
+
     // The idea here is that the subcommand feeds all the reads to the version
     // of map_paired that takes a buffer, and then empties the buffer by
     // iterating over it in parallel with the version that doesn't.
     // TODO: how will we warn about not having a pair distribution yet then?
-    
+
     /**
      * Map the given pair of reads, where aln1 is upstream of aln2 and they are
      * oriented towards each other in the graph.
@@ -67,7 +67,7 @@ public:
      */
     pair<vector<Alignment>, vector<Alignment>> map_paired(Alignment& aln1, Alignment& aln2,
         vector<pair<Alignment, Alignment>>& ambiguous_pair_buffer);
-        
+
     /**
      * Map the given pair of reads, where aln1 is upstream of aln2 and they are
      * oriented towards each other in the graph.
@@ -94,6 +94,9 @@ public:
     /// of total score
     double minimizer_score_fraction = 0.9;
 
+    /// Take at maximum number of unique non-overlapping minimizers
+    size_t max_unique_min = 500;
+
     ///Accept at least this many clusters
     size_t min_extensions = 2;
 
@@ -102,14 +105,14 @@ public:
 
     /// How many extended clusters should we align, max?
     size_t max_alignments = 8;
-    
+
     /// How many extensions should we try as seeds within a mapping location?
     size_t max_local_extensions = numeric_limits<size_t>::max();
 
     //If a cluster's score is smaller than the best score of any cluster by more than
     //this much, then don't extend it
     double cluster_score_threshold = 50;
-    
+
     //If the second best cluster's score is no more than this many points below
     //the cutoff set by cluster_score_threshold, snap that cutoff down to the
     //second best cluster's score, to avoid throwing away promising
@@ -120,7 +123,7 @@ public:
     //by more than this much, don't extend it
     double cluster_coverage_threshold = 0.3;
 
-    //If an extension set's score is smaller than the best 
+    //If an extension set's score is smaller than the best
     //extension's score by more than this much, don't align it
     double extension_set_score_threshold = 20;
 
@@ -133,7 +136,7 @@ public:
     bool do_dp = true;
     string sample_name;
     string read_group;
-    
+
     /// Track which internal work items came from which others during each
     /// stage of the mapping algorithm.
     bool track_provenance = false;
@@ -142,12 +145,12 @@ public:
     /// and track if/when their descendants make it through stages of the
     /// algorithm. Only works if track_provenance is true.
     bool track_correctness = false;
-    
+
     /// If set, log what the mapper is thinking in its mapping of each read.
     bool show_work = false;
 
     ////How many stdevs from fragment length distr mean do we cluster together?
-    double paired_distance_stdevs = 2.0; 
+    double paired_distance_stdevs = 2.0;
 
     ///How close does an alignment have to be to the best alignment for us to rescue on it
     double paired_rescue_score_limit = 0.9;
@@ -160,17 +163,17 @@ public:
 
     /// For paired end mapping, how many times should we attempt rescue (per read)?
     size_t max_rescue_attempts = 15;
-    
+
     /// How big of an alignment in POA cells should we ever try to do with Dozeu?
     /// TODO: Lift this when Dozeu's allocator is able to work with >4 MB of memory.
     /// Each cell is 16 bits in Dozeu, and we leave some room for the query and
     /// padding to full SSE registers. Note that a very chopped graph might
     /// still break this!
     size_t max_dozeu_cells = (size_t)(1.5 * 1024 * 1024);
-    
+
     /// And have we complained about hitting it for rescue?
     atomic_flag warned_about_rescue_size = ATOMIC_FLAG_INIT;
-    
+
     /// And have we complained about hitting it for tails?
     mutable atomic_flag warned_about_tail_size = ATOMIC_FLAG_INIT;
 
@@ -187,7 +190,7 @@ public:
     void finalize_fragment_length_distr() {
         if (!fragment_length_distr.is_finalized()) {
             fragment_length_distr.force_parameters(fragment_length_distr.mean(), fragment_length_distr.std_dev());
-        } 
+        }
     }
     void force_fragment_length_distr(double mean, double stdev) {
         fragment_length_distr.force_parameters(mean, stdev);
@@ -215,14 +218,14 @@ protected:
         size_t hits; // How many hits does the minimizer have?
         const gbwtgraph::hit_type* occs;
         int32_t length; // How long is the minimizer (index's k)
-        int32_t candidates_per_window; // How many minimizers compete to be the best (index's w), or 1 for syncmers.  
+        int32_t candidates_per_window; // How many minimizers compete to be the best (index's w), or 1 for syncmers.
         double score; // Scores as 1 + ln(hard_hit_cap) - ln(hits).
 
         // Sort the minimizers in descending order by score and group identical minimizers together.
         inline bool operator< (const Minimizer& another) const {
             return (this->score > another.score || (this->score == another.score && this->value.key < another.value.key));
         }
-        
+
         /// Get the starting position of the given minimizer on the forward strand.
         /// Use this instead of value.offset which can really be the last base for reverse strand minimizers.
         inline size_t forward_offset() const {
@@ -234,24 +237,24 @@ protected:
                 return this->value.offset;
             }
         }
-        
+
         /// How many bases are in a window for which a minimizer is chosen?
         inline size_t window_size() const {
             return length + candidates_per_window - 1;
         }
-        
+
         /// How many different windows are in this minimizer's agglomeration?
         inline size_t agglomeration_window_count() const {
             // Work out the length of a whole window, and then from that and the window count get the overall length.
             return agglomeration_length - window_size() + 1;
         }
     };
-    
+
     /// Convert an integer distance, with limits standing for no distance, to a
     /// double annotation that can safely be parsed back from JSON into an
     /// integer if it is integral.
     double distance_to_annotation(int64_t distance) const;
-    
+
     /// The information we store for each seed.
     typedef SnarlSeedClusterer::Seed Seed;
 
@@ -264,13 +267,13 @@ protected:
     MinimumDistanceIndex& distance_index;
     /// This is our primary graph.
     const gbwtgraph::GBWTGraph& gbwt_graph;
-    
+
     /// We have a gapless extender to extend seed hits in haplotype space.
     GaplessExtender extender;
-    
+
     /// We have a clusterer
     SnarlSeedClusterer clusterer;
-    
+
     /// We have a distribution for read fragment lengths that takes care of
     /// knowing when we've observed enough good ones to learn a good
     /// distribution.
@@ -359,12 +362,12 @@ protected:
      * alignment has been set.
      */
     void extension_to_alignment(const GaplessExtension& extension, Alignment& alignment) const;
-    
+
     /**
      * Set pair partner references for paired mapping results.
      */
     void pair_all(pair<vector<Alignment>, vector<Alignment>>& mappings) const;
-    
+
 
 
 //-----------------------------------------------------------------------------
@@ -401,12 +404,12 @@ protected:
      */
     static double window_breaking_quality(const vector<Minimizer>& minimizers, vector<size_t>& broken,
         const string& sequence, const string& quality_bytes);
-    
+
     /**
      * Compute a bound on the Phred score probability of a mapping beign wrong
      * due to base errors and unlocated minimizer hits prevented us from
      * finding the true alignment.
-     *  
+     *
      * Algorithm uses a "sweep line" dynamic programming approach.
      * For a read with minimizers aligned to it:
      *
@@ -431,12 +434,12 @@ protected:
      * minimizer start position.
      */
     static double faster_cap(const vector<Minimizer>& minimizers, vector<size_t>& minimizers_explored, const string& sequence, const string& quality_bytes);
-    
+
     /**
      * Given a collection of minimizers, and a list of the minimizers we
      * actually care about (as indices into the collection), iterate over
      * common intervals of overlapping minimizer agglomerations.
-     *   
+     *
      * Calls the given callback with (left, right, bottom, top), where left is
      * the first base of the agglomeration interval (inclusive), right is the
      * last base of the agglomeration interval (exclusive), bottom is the index
@@ -451,12 +454,12 @@ protected:
     static void for_each_agglomeration_interval(const vector<Minimizer>& minimizers,
         const string& sequence, const string& quality_bytes,
         const vector<size_t>& minimizer_indices,
-        const function<void(size_t, size_t, size_t, size_t)>& iteratee);      
-    
+        const function<void(size_t, size_t, size_t, size_t)>& iteratee);
+
     /**
      * Gives the log10 prob of a base error in the given interval of the read,
      * accounting for the disruption of specified minimizers.
-     * 
+     *
      * minimizers is the collection of all minimizers
      *
      * disrupt_begin and disrupt_end are iterators defining a sequence of
@@ -469,11 +472,11 @@ protected:
         const string& sequence, const string& quality_bytes,
         const vector<size_t>::iterator& disrupt_begin, const vector<size_t>::iterator& disrupt_end,
         size_t left, size_t right);
-    
+
     /**
      * Gives the raw probability of a base error in the given column of the
      * read, accounting for the disruption of specified minimizers.
-     * 
+     *
      * minimizers is the collection of all minimizers
      *
      * disrupt_begin and disrupt_end are iterators defining a sequence of
@@ -485,7 +488,7 @@ protected:
         const string& sequence, const string& quality_bytes,
         const vector<size_t>::iterator& disrupt_begin, const vector<size_t>::iterator& disrupt_end,
         size_t index);
-    
+
     /**
      * Score the given group of gapless extensions. Determines the best score
      * that can be obtained by chaining extensions together, using the given
@@ -498,7 +501,7 @@ protected:
      */
     static int score_extension_group(const Alignment& aln, const vector<GaplessExtension>& extended_seeds,
         int gap_open_penalty, int gap_extend_penalty);
-    
+
     /**
      * Operating on the given input alignment, align the tails dangling off the
      * given extended perfect-match seeds and produce an optimal alignment into
@@ -507,8 +510,8 @@ protected:
      *
      * Uses the given RNG to break ties.
      */
-    void find_optimal_tail_alignments(const Alignment& aln, const vector<GaplessExtension>& extended_seeds, LazyRNG& rng, Alignment& best, Alignment& second_best) const; 
-    
+    void find_optimal_tail_alignments(const Alignment& aln, const vector<GaplessExtension>& extended_seeds, LazyRNG& rng, Alignment& best, Alignment& second_best) const;
+
     /**
      * Find for each pair of extended seeds all the haplotype-consistent graph
      * paths against which the intervening read sequence needs to be aligned.
@@ -530,7 +533,7 @@ protected:
      */
     unordered_map<size_t, unordered_map<size_t, vector<Path>>> find_connecting_paths(const vector<GaplessExtension>& extended_seeds,
         size_t read_length) const;
-        
+
     /**
      * Get all the trees defining tails off the specified side of the specified
      * gapless extension. Should only be called if a tail on that side exists,
@@ -552,7 +555,7 @@ protected:
      */
     vector<TreeSubgraph> get_tail_forest(const GaplessExtension& extended_seed,
         size_t read_length, bool left_tails, size_t* longest_detectable_gap = nullptr) const;
-        
+
     /**
      * Find the best alignment of the given sequence against any of the trees
      * provided in trees, where each tree is a TreeSubgraph over the GBWT
@@ -573,11 +576,11 @@ protected:
      */
     pair<Path, size_t> get_best_alignment_against_any_tree(const vector<TreeSubgraph>& trees, const string& sequence,
         const Position& default_position, bool pin_left, size_t longest_detectable_gap, LazyRNG& rng) const;
-        
+
     /// We define a type for shared-tail lists of Mappings, to avoid constantly
     /// copying Path objects.
     using ImmutablePath = structures::ImmutableList<Mapping>;
-    
+
     /**
      * Get the from length of an ImmutabelPath.
      *
@@ -585,7 +588,7 @@ protected:
      * instead of overloading.
      */
     static size_t immutable_path_from_length(const ImmutablePath& path);
-    
+
     /**
      * Convert an ImmutablePath to a Path.
      */
@@ -606,27 +609,27 @@ protected:
      */
     void dfs_gbwt(const Position& from, size_t walk_distance,
         const function<void(const handle_t&)>& enter_handle, const function<void(void)> exit_handle) const;
-     
+
     /**
      * The same as dfs_gbwt on a Position, but takes a handle in the
      * backing gbwt_graph and an offset from the start of the handle instead.
-     */ 
+     */
     void dfs_gbwt(handle_t from_handle, size_t from_offset, size_t walk_distance,
         const function<void(const handle_t&)>& enter_handle, const function<void(void)> exit_handle) const;
-        
+
     /**
      * The same as dfs_gbwt on a handle and an offset, but takes a
      * gbwt::SearchState that defines only some haplotypes on a handle to start
      * with.
-     */ 
+     */
     void dfs_gbwt(const gbwt::SearchState& start_state, size_t from_offset, size_t walk_distance,
         const function<void(const handle_t&)>& enter_handle, const function<void(void)> exit_handle) const;
- 
+
     /**
      * Score a pair of alignments given the distance between them
      */
     double score_alignment_pair(Alignment& aln1, Alignment& aln2, int64_t fragment_distance);
-    
+
     /**
      * Given a vector of items, a function to get the score of each, a
      * score-difference-from-the-best cutoff, a min and max processed item
@@ -652,7 +655,7 @@ protected:
         const function<bool(size_t)>& process_item,
         const function<void(size_t)>& discard_item_by_count,
         const function<void(size_t)>& discard_item_by_score) const;
-     
+
     /**
      * Same as the other process_until_threshold functions, except using a vector to supply scores.
      */
@@ -663,9 +666,9 @@ protected:
         const function<bool(size_t)>& process_item,
         const function<void(size_t)>& discard_item_by_count,
         const function<void(size_t)>& discard_item_by_score) const;
-     
+
     /**
-     * Same as the other process_until_threshold functions, except user supplies 
+     * Same as the other process_until_threshold functions, except user supplies
      * comparator to sort the items (must still be sorted by score).
      */
     template<typename Item, typename Score = double>
@@ -676,18 +679,18 @@ protected:
         const function<bool(size_t)>& process_item,
         const function<void(size_t)>& discard_item_by_count,
         const function<void(size_t)>& discard_item_by_score) const;
-        
+
     // Internal debugging functions
-    
+
     /// Dump all the given minimizers, with optional subset restriction
     static void dump_debug_minimizers(const vector<Minimizer>& minimizers, const string& sequence, const vector<size_t>* to_include = nullptr);
-    
+
     /// Dump all the extansions in an extension set
     static void dump_debug_extension_set(const HandleGraph& graph, const Alignment& aln, const vector<GaplessExtension>& extended_seeds);
-    
+
     /// Print a sequence with base numbering
     static void dump_debug_sequence(ostream& out, const string& sequence);
-    
+
     /// Get the thread identifier prefix for logging
     static string log_name();
 
@@ -714,9 +717,9 @@ void MinimizerMapper::process_until_threshold_b(const vector<Item>& items, const
     const function<bool(size_t)>& process_item,
     const function<void(size_t)>& discard_item_by_count,
     const function<void(size_t)>& discard_item_by_score) const {
-    
+
     assert(scores.size() == items.size());
-    
+
     process_until_threshold_c<Item, Score>(items, [&](size_t i) -> Score {
         return scores[i];
     }, [&](size_t a, size_t b) -> bool {
@@ -739,28 +742,28 @@ void MinimizerMapper::process_until_threshold_c(const vector<Item>& items, const
     for (size_t i = 0; i < items.size(); i++) {
         indexes_in_order.push_back(i);
     }
-    
+
     // Put the highest scores first, but shuffle top ties so reads spray evenly
     // across equally good mappings
     sort_shuffling_ties(indexes_in_order.begin(), indexes_in_order.end(), comparator, rng);
 
     // Retain items only if their score is at least as good as this
     double cutoff = items.size() == 0 ? 0 : get_score(indexes_in_order[0]) - threshold;
-    
+
     // Count up non-skipped items for min_count and max_count
     size_t unskipped = 0;
-    
+
     // Go through the items in descending score order.
     for (size_t i = 0; i < indexes_in_order.size(); i++) {
         // Find the item we are talking about
         size_t& item_num = indexes_in_order[i];
-        
+
         if (threshold != 0 && get_score(item_num) <= cutoff) {
             // Item would fail the score threshold
-            
+
             if (unskipped < min_count) {
                 // But we need it to make up the minimum number.
-                
+
                 // Go do it.
                 // If it is not skipped by the user, add it to the total number
                 // of unskipped items, for min/max number accounting.
@@ -771,10 +774,10 @@ void MinimizerMapper::process_until_threshold_c(const vector<Item>& items, const
             }
         } else {
             // The item has a good enough score
-            
+
             if (unskipped < max_count) {
                 // We have room for it, so accept it.
-                
+
                 // Go do it.
                 // If it is not skipped by the user, add it to the total number
                 // of unskipped items, for min/max number accounting.
