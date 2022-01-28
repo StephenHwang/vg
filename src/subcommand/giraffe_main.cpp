@@ -361,6 +361,7 @@ void help_giraffe(char** argv) {
     << "  --paired-distance-limit FLOAT cluster pairs of read using a distance limit FLOAT standard deviations greater than the mean [2.0]" << endl
     << "  --rescue-subgraph-size FLOAT  search for rescued alignments FLOAT standard deviations greater than the mean [4.0]" << endl
     << "  --rescue-seed-limit INT       attempt rescue with at most INT seeds [100]" << endl
+    << "  --exclude-overlapping-min     exclude overlapping minimizers" << endl
     << "  --track-provenance            track how internal intermediate alignment candidates were arrived at" << endl
     << "  --track-correctness           track if internal intermediate alignment candidates are correct (implies --track-provenance)" << endl
     << "  -t, --threads INT             number of mapping threads to use" << endl;
@@ -386,6 +387,7 @@ int main_giraffe(int argc, char** argv) {
     #define OPT_RESCUE_SEED_LIMIT 1009
     #define OPT_REF_PATHS 1010
     #define OPT_SHOW_WORK 1011
+    #define OPT_SHOW_EXCLUDE_OVERLAPPING_MIN 1012
 
 
     // initialize parameters with their default options
@@ -463,6 +465,9 @@ int main_giraffe(int argc, char** argv) {
     bool track_correctness = false;
     // Should we log our mapping decision making?
     bool show_work = false;
+
+    /// Exclude overlapping minimizers?
+    bool exclude_overlapping_min = false;
 
     // Chain all the ranges and get a function that loops over all combinations.
     auto for_each_combo = distance_limit
@@ -555,6 +560,7 @@ int main_giraffe(int argc, char** argv) {
             {"track-provenance", no_argument, 0, OPT_TRACK_PROVENANCE},
             {"track-correctness", no_argument, 0, OPT_TRACK_CORRECTNESS},
             {"show-work", no_argument, 0, OPT_SHOW_WORK},
+            {"exclude-overlapping-min", no_argument, 0, OPT_SHOW_EXCLUDE_OVERLAPPING_MIN},
             {"threads", required_argument, 0, 't'},
             {0, 0, 0, 0}
         };
@@ -913,6 +919,10 @@ int main_giraffe(int argc, char** argv) {
                 }
                 break;
 
+            case OPT_SHOW_EXCLUDE_OVERLAPPING_MIN:
+                exclude_overlapping_min = true;
+                break;
+
             case OPT_FRAGMENT_MEAN:
                 forced_mean = true;
                 fragment_mean = parse<double>(optarg);
@@ -1251,6 +1261,11 @@ int main_giraffe(int argc, char** argv) {
             cerr << "--max-min " << max_unique_min << endl;
         }
         minimizer_mapper.max_unique_min = max_unique_min;
+
+        if (show_progress) {
+            cerr << "--exclude-overlapping-min " << endl;
+        }
+        minimizer_mapper.exclude_overlapping_min = exclude_overlapping_min;
 
         if (show_progress) {
             cerr << "--max-extensions " << max_extensions << endl;

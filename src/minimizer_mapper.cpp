@@ -2879,7 +2879,6 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
     size_t start = 0, limit = 0;
     size_t run_hits = 0;
     size_t num_unique_min = 0;
-    // fprintf(stderr, "Input parameter for max unique min: %5d\n", this->max_unique_min);
 
     if (show_work) {
         #pragma omp critical (cerr)
@@ -2888,6 +2887,18 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
             dump_debug_minimizers(minimizers, aln.sequence());
         }
     }
+
+
+
+    // if (exclude_overlapping_min) {
+      // fprintf(stderr, "selected exclude_overlapping_min: %d\n", exclude_overlapping_min);
+    // } else {
+      // fprintf(stderr, "did not select exclude_overlapping_min: %d\n", exclude_overlapping_min);
+    // }
+
+    size_t read_len = aln.sequence().size();
+    std::vector<bool> read_bit_vector (read_len, false);    // bit vector the length of the read
+
 
     // Select the minimizers we use for seeds.
     size_t rejected_count = 0;
@@ -2918,6 +2929,16 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
         // of the selected minimizers is not high enough.
         const Minimizer& minimizer = minimizers[i];
 
+        // minimizer information
+        int32_t min_len = minimizer.length;
+        size_t min_start_index = minimizer.agglomeration_start; // start base of the first window
+
+        bool overlapping = false;
+        if (exclude_overlapping_min &&
+           (read_bit_vector[min_start_index] || read_bit_vector[min_start_index + min_len])) {
+            overlapping = true;
+        }
+
         if (minimizer.hits == 0) {
             // A minimizer with no hits can't go on.
             took_last = false;
@@ -2926,8 +2947,11 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
                 funnel.fail("any-hits", i);
             }
 
-        } else if (
-              (minimizer.hits <= this->hit_cap || (run_hits <= this->hard_hit_cap && selected_score + minimizer.score <= target_score)) && (num_unique_min <= this->max_unique_min) ||
+        } else if (  // passes reads
+              (minimizer.hits <= this->hit_cap || 
+                (run_hits <= this->hard_hit_cap && selected_score + minimizer.score <= target_score)) && 
+              (num_unique_min <= this->max_unique_min) &&
+              (!overlapping) ||
               (took_last && i > start)
             ) {
             // We should keep this minimizer instance because it is
@@ -2937,10 +2961,21 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
             // increment the number of minimizers if taken and not same seq as prev
             if (!(took_last && i > start)) {
               num_unique_min += 1;
-              // if (num_unique_min % 25 == 0) {
-                // fprintf(stderr, "Incremented count of min: %5d\n", num_unique_min);
-              // }
             }
+
+            // fprintf(stderr, "\nlength of minimizer: %d\n", min_len);
+            // fprintf(stderr, "length of read: %d\n", read_len);      //  read length?
+            // fprintf(stderr, "minimizer start: %d\n", agglomeration_start);    // What is the start base of the first window this minimizer instance is minimal in?
+            // fprintf(stderr, "minimizer window: %d\n", agglomeration_length);  // What is the length in bp of the region of consecutive windows this minimizer instance is minimal in?
+
+            // set start and stop of minimizer as a reads
+            if (exclude_overlapping_min) {
+              int i;
+              for (i=min_start_index; i<(min_start_index + min_len); i++) {
+                read_bit_vector[i] = true;
+              }
+            }
+
 
             // Locate the hits.
             for (size_t j = 0; j < minimizer.hits; j++) {
@@ -2950,6 +2985,9 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
                     size_t node_length = this->gbwt_graph.get_length(this->gbwt_graph.get_handle(id(hit)));
                     hit = reverse_base_pos(hit, node_length);
                 }
+
+
+
                 // Extract component id and offset in the root chain, if we have them for this seed.
                 // TODO: Get all the seed values here
                 tuple<bool, size_t, size_t, bool, size_t, size_t, size_t, size_t, bool> chain_info
