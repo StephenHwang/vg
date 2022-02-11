@@ -2950,7 +2950,7 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
         } else if (  // passes reads
               (minimizer.hits <= this->hit_cap || 
                 (run_hits <= this->hard_hit_cap && selected_score + minimizer.score <= target_score)) && 
-              (num_unique_min <= this->max_unique_min) &&
+              (num_unique_min < this->max_unique_min) &&
               (!overlapping) ||
               (took_last && i > start)
             ) {
@@ -3036,6 +3036,8 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
         }
     }
 
+    fprintf(stderr, "\nnew read\n");
+
     if (this->track_provenance && this->track_correctness) {
         // Tag seeds with correctness based on proximity along paths to the input read's refpos
         funnel.substage("correct");
@@ -3054,7 +3056,19 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
                     // For every annotated true position
                     for (auto& hit_pos : offsets[this->path_graph->get_path_handle(true_pos.name())]) {
                         // Look at all the hit positions on the path the read's true position is on.
-                        if (abs((int64_t)hit_pos.first - (int64_t) true_pos.offset()) < 200) {
+                        // if (abs((int64_t)hit_pos.first - (int64_t) true_pos.offset()) < 200) {
+
+                        int64_t seed_offset = (int64_t)hit_pos.first - (int64_t) true_pos.offset();
+                        fprintf(stderr, "seed: %5ld, \n", seed_offset);
+
+                        if (abs((int64_t)hit_pos.first - (int64_t) true_pos.offset()) < aln.sequence().size()) {
+                          // fprintf(stderr, "  seed passes filter\n");
+
+                          // should do something with 
+                          // first should be left of true pos
+                          // if true pos is 100, hit should be 110.... so greater than 10
+
+
                             // Call this seed hit close enough to be correct
                             funnel.tag_correct(i);
                         }
