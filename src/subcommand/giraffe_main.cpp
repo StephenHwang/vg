@@ -388,8 +388,8 @@ int main_giraffe(int argc, char** argv) {
     #define OPT_RESCUE_SEED_LIMIT 1009
     #define OPT_REF_PATHS 1010
     #define OPT_SHOW_WORK 1011
-    #define OPT_SHOW_EXCLUDE_OVERLAPPING_MIN 1012
     #define OPT_NAMED_COORDINATES 1012
+    #define OPT_SHOW_EXCLUDE_OVERLAPPING_MIN 1013
 
     // initialize parameters with their default options
 
