@@ -84,6 +84,9 @@ public:
     // Mapping settings.
     // TODO: document each
 
+    /// Seed correctness distance
+    size_t seed_correct_dist = 200;
+
     /// Use all minimizers with at most hit_cap hits
     size_t hit_cap = 10;
 

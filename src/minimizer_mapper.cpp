@@ -3036,7 +3036,7 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
         }
     }
 
-    fprintf(stderr, "\nnew read\n");
+    // fprintf(stderr, "\nnew read\n");
 
     if (this->track_provenance && this->track_correctness) {
         // Tag seeds with correctness based on proximity along paths to the input read's refpos
@@ -3056,12 +3056,13 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
                     // For every annotated true position
                     for (auto& hit_pos : offsets[this->path_graph->get_path_handle(true_pos.name())]) {
                         // Look at all the hit positions on the path the read's true position is on.
-                        // if (abs((int64_t)hit_pos.first - (int64_t) true_pos.offset()) < 200) {
+                        // if (abs((int64_t)hit_pos.first - (int64_t) true_pos.offset()) < 200) {                       // default 200
+                        // if (abs((int64_t)hit_pos.first - (int64_t) true_pos.offset()) < aln.sequence().size()) {     // length of read
 
                         int64_t seed_offset = (int64_t)hit_pos.first - (int64_t) true_pos.offset();
-                        fprintf(stderr, "seed: %5ld, \n", seed_offset);
+                        // fprintf(stderr, "seed: %5ld, \n", seed_offset);
 
-                        if (abs((int64_t)hit_pos.first - (int64_t) true_pos.offset()) < aln.sequence().size()) {
+                        if (abs((int64_t)hit_pos.first - (int64_t) true_pos.offset()) < this->seed_correct_dist) {
                           // fprintf(stderr, "  seed passes filter\n");
 
                           // should do something with 

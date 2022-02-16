@@ -357,6 +357,7 @@ void help_giraffe(char** argv) {
     << "  -r, --rescue-attempts         attempt up to INT rescues per read in a pair [15]" << endl
     << "  -A, --rescue-algorithm NAME   use algorithm NAME for rescue (none / dozeu / gssw / haplotypes) [dozeu]" << endl
     << "  -L, --max-fragment-length INT assume that fragment lengths should be smaller than INT when estimating the fragment length distribution" << endl
+    << "  --seed-correct-dist INT       distance within which to consider seeds correct" << endl
     << "  --fragment-mean FLOAT         force the fragment length distribution to have this mean (requires --fragment-stdev)" << endl
     << "  --fragment-stdev FLOAT        force the fragment length distribution to have this standard deviation (requires --fragment-mean)" << endl
     << "  --paired-distance-limit FLOAT cluster pairs of read using a distance limit FLOAT standard deviations greater than the mean [2.0]" << endl
@@ -390,6 +391,7 @@ int main_giraffe(int argc, char** argv) {
     #define OPT_SHOW_WORK 1011
     #define OPT_NAMED_COORDINATES 1012
     #define OPT_SHOW_EXCLUDE_OVERLAPPING_MIN 1013
+    #define OPT_SEED_CORRECT_DIST 1014
 
     // initialize parameters with their default options
 
@@ -402,6 +404,9 @@ int main_giraffe(int argc, char** argv) {
     Range<size_t> hit_cap = 10, hard_hit_cap = 500;
     Range<double> minimizer_score_fraction = 0.9;
     Range<size_t> max_unique_min = 500;
+
+    // distance within which to consider seeds correct
+    size_t seed_correct_dist = 200; 
 
     bool show_progress = false;
     // Should we try chaining or just give up if we can't find a full length gapless alignment?
@@ -556,6 +561,7 @@ int main_giraffe(int argc, char** argv) {
             {"no-dp", no_argument, 0, 'O'},
             {"rescue-attempts", required_argument, 0, 'r'},
             {"rescue-algorithm", required_argument, 0, 'A'},
+            {"seed-correct-dist", required_argument, 0, OPT_SEED_CORRECT_DIST},
             {"paired-distance-limit", required_argument, 0, OPT_CLUSTER_STDEV },
             {"rescue-subgraph-size", required_argument, 0, OPT_RESCUE_STDEV },
             {"rescue-seed-limit", required_argument, 0, OPT_RESCUE_SEED_LIMIT},
@@ -928,6 +934,10 @@ int main_giraffe(int argc, char** argv) {
                 }
                 break;
 
+            case OPT_SEED_CORRECT_DIST:
+                seed_correct_dist = parse<size_t>(optarg);
+                break;
+
             case OPT_SHOW_EXCLUDE_OVERLAPPING_MIN:
                 exclude_overlapping_min = true;
                 break;
@@ -1284,6 +1294,11 @@ int main_giraffe(int argc, char** argv) {
         minimizer_mapper.exclude_overlapping_min = exclude_overlapping_min;
 
         if (show_progress) {
+            cerr << "--seed-correct-dist " << endl;
+        }
+        minimizer_mapper.seed_correct_dist = seed_correct_dist;
+
+        if (show_progress) {
             cerr << "--max-extensions " << max_extensions << endl;
         }
         minimizer_mapper.max_extensions = max_extensions;
@@ -1359,6 +1374,7 @@ int main_giraffe(int argc, char** argv) {
             cerr << "--rescue-attempts " << rescue_attempts << endl;
             cerr << "--rescue-algorithm " << algorithm_names[rescue_algorithm] << endl;
         }
+
         minimizer_mapper.max_fragment_length = fragment_length;
         minimizer_mapper.paired_distance_stdevs = cluster_stdev;
         minimizer_mapper.rescue_subgraph_stdevs = rescue_stdev;
