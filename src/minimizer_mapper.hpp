@@ -373,8 +373,11 @@ protected:
      * Set pair partner references for paired mapping results.
      */
     void pair_all(pair<vector<Alignment>, vector<Alignment>>& mappings) const;
-
-
+    
+    /**
+     * Add annotations to an Alignment with statistics about the minimizers.
+     */
+    void annotate_with_minimizer_statistics(Alignment& target, const std::vector<Minimizer>& minimizers, const std::vector<Seed>& seeds, const Funnel& funnel) const;
 
 //-----------------------------------------------------------------------------
 
