@@ -183,6 +183,8 @@ def make_stats(read):
     # This will map from filter name to Counter of filter stats
     filter_stats = collections.defaultdict(collections.Counter)
 
+    correct_min_coverage_list = []
+
     for annot_name in annot.keys():
         # For each annotation
         if annot_name.startswith('filter_'):
@@ -245,13 +247,18 @@ def make_stats(read):
             elif stage == 'align':
                 filter_stats['max-alignments']['last_correct_stage'] = 1
 
+        # TODO: add annot
+        elif annot_name.startswith('correct-minimizer-coverage'):
+            #last_correct_stage asd
+            correct_min_coverage = annot['correct-minimizer-coverage']
+
     # Now put them all in this OrderedDict in order
     ordered_stats = collections.OrderedDict()
     for filter_index in sorted(filters_by_index.keys()):
         filter_name = filters_by_index[filter_index]
         ordered_stats[filter_name] = filter_stats[filter_name]
 
-    return ordered_stats
+    return ordered_stats, correct_min_coverage
 
 def add_in_stats(destination, addend):
     """
@@ -892,6 +899,8 @@ def main(args):
     # Record mapping parameters from at least one read
     params = None
 
+    correct_min_coverage_list = []
+
     for read in read_line_oriented_json(options.input):
 
         if params is None:
@@ -899,7 +908,9 @@ def main(args):
             params = sniff_params(read)
 
         # For the stats dict for each read
-        stats = make_stats(read)
+        stats, correct_min_coverage = make_stats(read)
+        correct_min_coverage_list.append(correct_min_coverage)
+
         if stats_total is None:
             stats_total = stats
         else:
@@ -909,10 +920,14 @@ def main(args):
         # Count the read
         read_count += 1
 
+    # average correct_min_coverage
+    correct_min_coverage_avg = sum(correct_min_coverage_list) / len(correct_min_coverage_list)
+
     # After processing all the reads
 
     # Print the table now in case plotting fails
     print_table(read_count, stats_total, params)
+    print('Correct min coverage avg: ', correct_min_coverage_avg)
 
     # Make filter statistic histograms
     plot_filter_statistic_histograms(options.outdir, stats_total)
