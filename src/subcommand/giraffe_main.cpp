@@ -1294,7 +1294,7 @@ int main_giraffe(int argc, char** argv) {
         minimizer_mapper.exclude_overlapping_min = exclude_overlapping_min;
 
         if (show_progress) {
-            cerr << "--seed-correct-dist " << endl;
+            cerr << "--seed-correct-dist " << seed_correct_dist << endl;
         }
         minimizer_mapper.seed_correct_dist = seed_correct_dist;
 
