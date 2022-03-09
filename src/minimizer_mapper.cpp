@@ -3023,11 +3023,6 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
               num_unique_min += 1;
             }
 
-            // fprintf(stderr, "\nlength of minimizer: %d\n", min_len);
-            // fprintf(stderr, "length of read: %d\n", read_len);      //  read length?
-            // fprintf(stderr, "minimizer start: %d\n", agglomeration_start);    // What is the start base of the first window this minimizer instance is minimal in?
-            // fprintf(stderr, "minimizer window: %d\n", agglomeration_length);  // What is the length in bp of the region of consecutive windows this minimizer instance is minimal in?
-
             // set start and stop of minimizer as a reads
             if (exclude_overlapping_min) {
               int i;
@@ -3035,7 +3030,6 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
                 read_bit_vector[i] = true;
               }
             }
-
 
             // Locate the hits.
             for (size_t j = 0; j < minimizer.hits; j++) {
@@ -3045,8 +3039,6 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
                     size_t node_length = this->gbwt_graph.get_length(this->gbwt_graph.get_handle(id(hit)));
                     hit = reverse_base_pos(hit, node_length);
                 }
-
-
 
                 // Extract component id and offset in the root chain, if we have them for this seed.
                 // TODO: Get all the seed values here
@@ -3116,23 +3108,22 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
                     // For every annotated true position
                     for (auto& hit_pos : offsets[this->path_graph->get_path_handle(true_pos.name())]) {
                         // Look at all the hit positions on the path the read's true position is on.
-                        // if (abs((int64_t)hit_pos.first - (int64_t) true_pos.offset()) < 200) {                       // default 200
-                        // if (abs((int64_t)hit_pos.first - (int64_t) true_pos.offset()) < aln.sequence().size()) {     // length of read
 
-                        int64_t seed_offset = (int64_t)hit_pos.first - (int64_t) true_pos.offset();
-                        // fprintf(stderr, "seed: %5ld, \n", seed_offset);
+                        // tracking seed_offset in graph space
+                        // int64_t seed_offset = (int64_t)hit_pos.first - (int64_t) true_pos.offset(); 
+                        // fprintf(stderr, "graph pos: %5ld, ", seed_offset);
+
+                        // tracking seed origin from read
+                        // size_t min_start_index = minimizer.agglomeration_start; // start base of the first window
+                        // fprintf(stderr, "read pos: %zu, \n", min_start_index);
 
                         if (abs((int64_t)hit_pos.first - (int64_t) true_pos.offset()) < this->seed_correct_dist) {
-                          // fprintf(stderr, "  seed passes filter\n");
-
-                          // should do something with 
-                          // first should be left of true pos
-                          // if true pos is 100, hit should be 110.... so greater than 10
-
-
                             // Call this seed hit close enough to be correct
                             funnel.tag_correct(i);
                             found = true;
+
+                            // fprintf(stderr, "  seed passes filter\n");
+
                             break;
                         }
                     }
