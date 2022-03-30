@@ -366,6 +366,7 @@ void help_giraffe(char** argv) {
     << "  --exclude-overlapping-min     exclude overlapping minimizers" << endl
     << "  --track-provenance            track how internal intermediate alignment candidates were arrived at" << endl
     << "  --track-correctness           track if internal intermediate alignment candidates are correct (implies --track-provenance)" << endl
+    << "  --track-clusters              track cluster specificity, size, and correctness" << endl
     << "  -t, --threads INT             number of mapping threads to use" << endl;
 }
 
@@ -392,6 +393,7 @@ int main_giraffe(int argc, char** argv) {
     #define OPT_NAMED_COORDINATES 1012
     #define OPT_SHOW_EXCLUDE_OVERLAPPING_MIN 1013
     #define OPT_SEED_CORRECT_DIST 1014
+    #define OPT_TRACK_CLUSTERS 1015
 
     // initialize parameters with their default options
 
@@ -469,6 +471,8 @@ int main_giraffe(int argc, char** argv) {
     bool track_provenance = false;
     // Should we track candidate correctness?
     bool track_correctness = false;
+    // Should we track cluster correctness?
+    bool track_clusters = false;
     // Should we log our mapping decision making?
     bool show_work = false;
 
@@ -570,6 +574,7 @@ int main_giraffe(int argc, char** argv) {
             {"fragment-stdev", required_argument, 0, OPT_FRAGMENT_STDEV },
             {"track-provenance", no_argument, 0, OPT_TRACK_PROVENANCE},
             {"track-correctness", no_argument, 0, OPT_TRACK_CORRECTNESS},
+            {"track-clusters", no_argument, 0, OPT_TRACK_CLUSTERS},
             {"show-work", no_argument, 0, OPT_SHOW_WORK},
             {"exclude-overlapping-min", no_argument, 0, OPT_SHOW_EXCLUDE_OVERLAPPING_MIN},
             {"threads", required_argument, 0, 't'},
@@ -976,6 +981,10 @@ int main_giraffe(int argc, char** argv) {
                 track_correctness = true;
                 break;
 
+            case OPT_TRACK_CLUSTERS:
+                track_clusters = true;
+                break;
+
             case OPT_SHOW_WORK:
                 show_work = true;
                 break;
@@ -1357,6 +1366,11 @@ int main_giraffe(int argc, char** argv) {
             cerr << "--track-correctness " << endl;
         }
         minimizer_mapper.track_correctness = track_correctness;
+
+        if (show_progress && track_clusters) {
+            cerr << "--track-clusters " << endl;
+        }
+        minimizer_mapper.track_clusters = track_clusters;
 
         if (show_progress && show_work) {
             cerr << "--show-work " << endl;

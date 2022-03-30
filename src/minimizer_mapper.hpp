@@ -149,6 +149,9 @@ public:
     /// algorithm. Only works if track_provenance is true.
     bool track_correctness = false;
 
+    /// Track cluster coverage and specificity
+    bool track_clusters = false;
+
     /// If set, log what the mapper is thinking in its mapping of each read.
     bool show_work = false;
 
