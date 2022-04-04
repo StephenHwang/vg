@@ -1229,6 +1229,17 @@ int main_giraffe(int argc, char** argv) {
         report << "#file\treads/second/thread" << endl;
     }
 
+
+    //// Set up to write a report of mapping speed if requested, instead of just dumping to stderr.
+    //ofstream cluster_report;
+    //if (track_clusters) {
+    //  // Open the report
+    //  cluster_report.open('cluster_specificity.tsv');
+    //  // Add a header
+    //  cluster_report <<  "num_clusters\tnum_correct_clusters\tnum_incorrect_clusters\tbest_cluster_score\tsecond_best_cluster_score\tworst_cluster_score\tsecond_worst_cluster_score\tsum_correct_cluster_scores\tsum_cluster_scores\tcluster_specificity" << endl;
+    //}
+
+
     // We need to loop over all the ranges...
     for_each_combo([&]() {
 

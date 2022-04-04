@@ -189,12 +189,13 @@ vector<Alignment> MinimizerMapper::map(Alignment& aln) {
     }
     double best_cluster_score = 0.0, second_best_cluster_score = 0.0;
 
-    // track worst cluster
     double worst_cluster_score = std::numeric_limits<double>::max();
-    double second_worst_cluster_score = std::numeric_limits<double>::max();
+    double second_worst_cluster_score = 0.0;   // std::numeric_limits<double>::max();
+    double correct_cluster_score = 0.0;
 
     // total scores
     double sum_correct_cluster_scores = 0.0, sum_cluster_scores = 0.0;
+    int num_correct_clusters = 0.0, num_incorrect_clusters = 0.0;
 
     for (size_t i = 0; i < clusters.size(); i++) {
         Cluster& cluster = clusters[i];
@@ -210,7 +211,11 @@ vector<Alignment> MinimizerMapper::map(Alignment& aln) {
 
         // if tracking clusters, track worst cluster score
         if (this->track_clusters) {
-          if (cluster.score <= worst_cluster_score) {
+          if (clusters.size() == 1) {       // only one cluster
+            worst_cluster_score = 0.0;
+            second_worst_cluster_score = 0.0;
+            second_best_cluster_score = 0.0;
+          } else if (cluster.score <= worst_cluster_score) {
               second_worst_cluster_score = worst_cluster_score;
               worst_cluster_score = cluster.score;
           } else if (cluster.score <= second_worst_cluster_score) {
@@ -220,41 +225,42 @@ vector<Alignment> MinimizerMapper::map(Alignment& aln) {
 
         // if tracking clusters, track cluster correctness
         if (this->track_clusters) {
-          // cluster.correctness?
-          // funnel.is_correct(i);
-          // output bool?
-          //
-          fprintf(stderr, "is cluster correct: %d\n", funnel.is_correct(i));
-
-          if (funnel.is_correct(i)) {
+          if (funnel.is_correct(i) == true) {
             sum_correct_cluster_scores += cluster.score;
+            num_correct_clusters += 1;
+            // is the correct cluster the best scoring one?
+            correct_cluster_score = cluster.score;
+          } else {
+            num_incorrect_clusters += 1;
           }
           sum_cluster_scores += cluster.score;
-
         }
     }
 
 
     // funnel Correctness of cluster?
     if (this->track_clusters) {
-        fprintf(stderr, "Cluster size: %d\n", clusters.size());
-        fprintf(stderr, "Best cluster score: %d\n", best_cluster_score);
-        fprintf(stderr, "Second best cluster score: %d\n", second_best_cluster_score);
-        fprintf(stderr, "Worst cluster score: %d\n", worst_cluster_score);
-        fprintf(stderr, "Second worst cluster score: %d\n", second_worst_cluster_score);
+        // num_clusters	num_correct_clusters	num_incorrect_clusters	
+        // best_is_correct correct_cluster_score	best_cluster_score	
+        // second_best_cluster_score	worst_cluster_score	
+        // second_worst_cluster_score	sum_correct_cluster_scores	
+        // sum_cluster_scores	cluster_specificity
+        double cluster_specificity = sum_correct_cluster_scores / sum_cluster_scores;
+        int num_clusters = clusters.size();
 
-        fprintf(stderr, "Sum cluster scores: %d\n", sum_cluster_scores);
-        fprintf(stderr, "Sum correct cluster scores: %d\n", sum_correct_cluster_scores);
+        // is best cluster, correct cluster
+        int best_is_correct = 0;
+        if (correct_cluster_score == best_cluster_score) {
+          best_is_correct = 1;
+        }
 
-
-       // clusters.size()    // size of cluster
-       // best_cluster_score
-       // second_best_cluster_score
-       // worst_cluster_score
-       // second_worst_cluster_score
+        fprintf(stderr, "%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n",
+            clusters.size(), num_correct_clusters, num_incorrect_clusters,
+            best_is_correct, correct_cluster_score, best_cluster_score,
+            second_best_cluster_score, worst_cluster_score,
+            second_worst_cluster_score, sum_correct_cluster_scores,
+            sum_cluster_scores, cluster_specificity); 
     }
-
-
 
 
     if (show_work) {
