@@ -157,7 +157,6 @@ vector<Alignment> MinimizerMapper::map(Alignment& aln) {
         #pragma omp critical (cerr)
         {
             cerr << log_name() << "Read " << aln.name() << ": " << aln.sequence() << endl;
-
         }
     }
 
@@ -235,7 +234,71 @@ vector<Alignment> MinimizerMapper::map(Alignment& aln) {
           }
           sum_cluster_scores += cluster.score;
         }
+
+        // get and track cluster location
+        if (this->track_clusters) {
+            // int64_t seed_offset = (int64_t)hit_pos.first - (int64_t) true_pos.offset(); 
+            //
+            // for (size_t j = 0; j < minimizers.size(); j++) {
+            //     if (cluster.present.contains(j)) {
+            //         const Minimizer& minimizer = minimizers[j];
+            //     }
+            // }
+            // 
+            //  cluster.present.insert(seeds[hit_index].source);
+            //  if (show_work) {
+            //      #pragma omp critical (cerr)
+            //      {
+            //          cerr << log_name() << "Minimizer " << seeds[hit_index].source << " is present in cluster " << i << endl;
+            //      }
+            //  }
+            //
+
+            // want to track;
+            //   position of cluster... can be basesd off seed position
+            //   asdf
+            for (auto hit_index : cluster.seeds) {
+                // r << log_name() << "Minimizer " << seeds[hit_index].source << " is present in cluster " << i << endl;
+
+                const Minimizer& minimizer = minimizers[seeds[hit_index].source];
+                cerr << "Read " << aln.name() << ": " << aln.sequence() << endl;
+                fprintf(stderr, "cluster id: %zu, \n", i);               // index of seeds in all minimizers
+                fprintf(stderr, "seed index: %zu, \n", seeds[hit_index].source);               // index of seeds in all minimizers
+                fprintf(stderr, "seed location: %zu, \n", minimizer.agglomeration_start);       // start position of seeds
+                fprintf(stderr, "cluster size: %zu, \n", cluster.seeds.size());                         // number of seeds in cluster?
+
+                // // minimizer
+                //     // size_t min_start_index = minimizer.agglomeration_start; // start base of the first window
+
+                //         // minimizer.forward_offset();
+
+                // // seeds[hit_index].
+
+                // // cluster.present = SmallBitset(minimizers.size());
+
+                // // Compute the score and cluster coverage.
+                // for (size_t j = 0; j < minimizers.size(); j++) {
+                //     if (cluster.present.contains(j)) {
+                //         const Minimizer& minimizer = minimizers[j];
+
+                //         // The offset of a reverse minimizer is the endpoint of the kmer
+                //         size_t start_offset = minimizer.forward_offset();
+                //         size_t k = minimizer.length;
+
+                //     // int64_t seed_offset = (int64_t)hit_pos.first - (int64_t) true_pos.offset(); 
+                //     // fprintf(stderr, "graph pos: %5ld, ", seed_offset);
+
+                //     }
+                // }
+
+                // size_t min_start_index = seeds[hit_index].agglomeration_start; // start base of the first window
+                // printf("read pos: %zu, \n", min_start_index);
+            }
+
+        }
+
     }
+
 
 
     // funnel Correctness of cluster?
@@ -246,7 +309,6 @@ vector<Alignment> MinimizerMapper::map(Alignment& aln) {
         // second_worst_cluster_score	sum_correct_cluster_scores	
         // sum_cluster_scores	cluster_specificity
         double cluster_specificity = sum_correct_cluster_scores / sum_cluster_scores;
-        int num_clusters = clusters.size();
 
         // is best cluster, correct cluster
         int best_is_correct = 0;
