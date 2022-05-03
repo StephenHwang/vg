@@ -244,11 +244,12 @@ vector<Alignment> MinimizerMapper::map(Alignment& aln) {
         }
 
 
-        
         if (this->track_clusters) {
 
             size_t curr_cluster_left_start = 1000000;
             size_t curr_cluster_right_end  = 0;
+
+            // fprintf(stderr, "   tmp: %zu\t%zu\t%zu\n", i, curr_cluster_left_start, curr_cluster_right_end);
 
             for (auto hit_index : cluster.seeds) {
                 // r << log_name() << "Minimizer " << seeds[hit_index].source << " is present in cluster " << i << endl;
@@ -267,20 +268,14 @@ vector<Alignment> MinimizerMapper::map(Alignment& aln) {
                 } 
             }
 
-            fprintf(stderr, "%zu\t%zu\t%zu\n",
-                             i, curr_cluster_left_start, curr_cluster_right_end);
-
-            // fprintf(stderr, "cluster id: %zu, \n", i);               // index of seeds in all minimizers
-            // fprintf(stderr, "num seeds in cluster: %zu, \n", cluster.seeds.size());                         // number of seeds in cluster?
-            // fprintf(stderr, "cluster left pos: %zu, \n", cluster.seeds.size());                         // number of seeds in cluster?
-            // fprintf(stderr, "cluster right pos: %zu, \n", cluster.seeds.size());                         // number of seeds in cluster?
-
+            fprintf(stderr, "%zu\t%zu\t%zu\n", i, curr_cluster_left_start, curr_cluster_right_end);
+            // fprintf(stderr, "    cluster id: %zu, \n", i);                           // cluster nuber
+            // fprintf(stderr, "    num seeds: %zu, \n", cluster.seeds.size());        // number of seeds in cluster
+            // fprintf(stderr, "    left pos: %zu, \n", curr_cluster_left_start);       // left pos
+            // fprintf(stderr, "    right pos: %zu, \n", curr_cluster_right_end);       // number of seeds in cluster?
         }
 
     }
-
-
-
     // funnel Correctness of cluster?
     if (this->track_clusters) {
         // num_clusters	num_correct_clusters	num_incorrect_clusters	
@@ -296,21 +291,7 @@ vector<Alignment> MinimizerMapper::map(Alignment& aln) {
           best_is_correct = 1;
         }
 
-        // cerr << "Read " << aln.name() << endl;
-        fprintf(stderr, "%s\t%zu\t%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n\n",
-            aln.name(), best_cluster_idx,
-            clusters.size(), num_correct_clusters, num_incorrect_clusters,
-            best_is_correct, correct_cluster_score, best_cluster_score,
-            second_best_cluster_score, worst_cluster_score,
-            second_worst_cluster_score, sum_correct_cluster_scores,
-            sum_cluster_scores, cluster_specificity); 
-
-        // fprintf(stderr, "%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n",
-            // aln.name(),
-            // cluster_id,
-            // left_pos_cluster,
-            // right_pos_cluster); 
-
+        cerr << aln.name() << "\t" << best_cluster_idx << "\t" << clusters.size() << "\t" << num_correct_clusters << "\t" << num_incorrect_clusters << "\t" << best_is_correct << "\t" << correct_cluster_score << "\t" << best_cluster_score << "\t" << second_best_cluster_score << "\t" << worst_cluster_score << "\t" << second_worst_cluster_score << "\t" << sum_correct_cluster_scores << "\t" << sum_cluster_scores << "\t" << cluster_specificity << endl;
     }
 
 
