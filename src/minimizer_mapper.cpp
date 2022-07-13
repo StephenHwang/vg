@@ -192,18 +192,18 @@ vector<Alignment> MinimizerMapper::map(Alignment& aln) {
     size_t best_cluster_idx = 0;
 
     // TODO: read name, number minimizers, total info content
-    double total_info_content = 0.0;
-    size_t total_minimizer_occurances = 0;
-    for (size_t i = 0; i < minimizers.size(); i++) {
-        const Minimizer& minimizer = minimizers[i];
-        // asd
-        total_info_content += minimizer.score;
+    //double total_info_content = 0.0;
+    //size_t total_minimizer_occurances = 0;
+    //for (size_t i = 0; i < minimizers.size(); i++) {
+    //    const Minimizer& minimizer = minimizers[i];
+    //    // asd
+    //    total_info_content += minimizer.score;
 
-        // sum total minimizer occurances
-        total_minimizer_occurances += minimizer.hits;
-        cerr << "   Minimizer " << i << " with " <<  minimizer.hits << " hits" << endl;
-    }
-    cerr << aln.name() << "\t" <<  minimizers.size() << "\t" << total_minimizer_occurances << "\t" << total_info_content << endl;
+    //    // sum total minimizer occurances
+    //    total_minimizer_occurances += minimizer.hits;
+    //    cerr << "   Minimizer " << i << " with " <<  minimizer.hits << " hits" << endl;
+    //}
+    //cerr << aln.name() << "\t" <<  minimizers.size() << "\t" << total_minimizer_occurances << "\t" << total_info_content << endl;
 
 
     double worst_cluster_score = std::numeric_limits<double>::max();
@@ -212,7 +212,7 @@ vector<Alignment> MinimizerMapper::map(Alignment& aln) {
 
     // total scores
     double sum_correct_cluster_scores = 0.0, sum_cluster_scores = 0.0;
-    int num_correct_clusters = 0.0, num_incorrect_clusters = 0.0;
+    int num_correct_clusters = 0, num_incorrect_clusters = 0;
 
 
     for (size_t i = 0; i < clusters.size(); i++) {
@@ -256,14 +256,34 @@ vector<Alignment> MinimizerMapper::map(Alignment& aln) {
         }
 
 
+//            minimizer_extended_cluster_count.emplace_back(minimizers.size(), 0);
+//            // Pack the seeds for GaplessExtender.
+//            GaplessExtender::cluster_type seed_matchings;
+//            for (auto seed_index : cluster.seeds) {
+//                // Insert the (graph position, read offset) pair.
+//                const Seed& seed = seeds[seed_index];
+//                seed_matchings.insert(GaplessExtender::to_seed(seed.pos, minimizers[seed.source].value.offset));
+//                minimizer_extended_cluster_count.back()[seed.source]++;
+//
+//                if (show_work) {
+//                    #pragma omp critical (cerr)
+//                    {
+//                        const Minimizer& minimizer = minimizers[seed.source];
+//                        cerr << log_name() << "Seed read:" << minimizer.value.offset << " = " << seed.pos
+//                            << " from minimizer " << seed.source << "(" << minimizer.hits << "), #" << seed_index << endl;
+//                    }
+//                }
+//            }
+
         if (this->track_clusters) {
 
-            size_t curr_cluster_left_start = 1000000;
+            size_t curr_cluster_left_start = 100000000;
             size_t curr_cluster_right_end  = 0;
+
 
             for (auto hit_index : cluster.seeds) {
                 const Minimizer& minimizer = minimizers[seeds[hit_index].source];
-                size_t curr_min_pos = minimizer.agglomeration_start;
+                size_t curr_min_pos = minimizer.forward_offset();
 
                 // track start and end of cluster
                 if (curr_min_pos < curr_cluster_left_start) {
@@ -274,7 +294,9 @@ vector<Alignment> MinimizerMapper::map(Alignment& aln) {
                 }
             }
 
-            fprintf(stderr, "%zu\t%zu\t%zu\n", i, curr_cluster_left_start, curr_cluster_right_end);                 // TODO: print cluster number and cluster start-stop position
+            cerr << i << "\t" <<cluster.seeds.size() << endl;
+            // fprintf(stderr, "%zu\t%zu\t%zu\n", i, curr_cluster_left_start, curr_cluster_right_end);                 // TODO: print cluster number and cluster start-stop position
+
             // fprintf(stderr, "    cluster id: %zu, \n", i);                           // cluster nuber
             // fprintf(stderr, "    num seeds: %zu, \n", cluster.seeds.size());        // number of seeds in cluster
             // fprintf(stderr, "    left pos: %zu, \n", curr_cluster_left_start);       // left pos
@@ -297,7 +319,7 @@ vector<Alignment> MinimizerMapper::map(Alignment& aln) {
           best_is_correct = 1;
         }
 
-        cerr << aln.name() << "\t" << best_cluster_idx << "\t" << clusters.size() << "\t" << num_correct_clusters << "\t" << num_incorrect_clusters << "\t" << best_is_correct << "\t" << correct_cluster_score << "\t" << best_cluster_score << "\t" << second_best_cluster_score << "\t" << worst_cluster_score << "\t" << second_worst_cluster_score << "\t" << sum_correct_cluster_scores << "\t" << sum_cluster_scores << "\t" << cluster_specificity << endl;
+        cerr << aln.name() << "\t" << best_cluster_idx << "\t" << clusters.size() << "\t" << num_correct_clusters << "\t" << num_incorrect_clusters << "\t" << best_is_correct << "\t" << correct_cluster_score << "\t" << best_cluster_score << "\t" << second_best_cluster_score << "\t" << worst_cluster_score << "\t" << second_worst_cluster_score << "\t" << sum_correct_cluster_scores << "\t" << sum_cluster_scores << "\t" << cluster_specificity << endl;                           // TODO: printed column names
     }
 
 
@@ -3086,15 +3108,22 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
         // of the selected minimizers is not high enough.
         const Minimizer& minimizer = minimizers[i];
 
-        // minimizer information
-        size_t min_start_index = minimizer.agglomeration_start + minimizer.forward_offset(); // start base of the first window  // TODO: error, this may be start position in the read... not in graph space?
-        size_t min_len = minimizer.length;
+        cerr << "minimizer " << i << " with " << minimizer.hits << " hits; total number of selected min: " << num_unique_min << endl;     // TODO: tracks passing and nu m hits of each min
 
+        // minimizer information
+        // size_t min_start_index = minimizer.agglomeration_start + minimizer.forward_offset();
+        size_t min_start_index = minimizer.forward_offset();
+        size_t min_len = minimizer.length;
         bool overlapping = false;
-        if (this->exclude_overlapping_min &&
-           (read_bit_vector[minimizer.agglomeration_start + minimizer.forward_offset()] || read_bit_vector[minimizer.length])) {
-           // (read_bit_vector[min_start_index] || read_bit_vector[min_start_index + min_len])) {
+        if (this->exclude_overlapping_min) {
+          // cerr << "checking overlap for minimizer: " << i << " ... " ;
+          if (read_bit_vector[min_start_index] == true || read_bit_vector[min_start_index + min_len] == true) {
+            // cerr << "overlapping";
             overlapping = true;
+          } else {
+            // cerr << "not overlapping";
+          }
+          // cerr << endl;
         }
 
         if (minimizer.hits == 0) {
@@ -3105,18 +3134,14 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
                 funnel.fail("any-hits", i);
             }
         } else if (  // passes reads
-              // (minimizer.hits <= this->hit_cap ||                                                                   // buggy original
-                // (run_hits <= this->hard_hit_cap && selected_score + minimizer.score <= target_score)) &&
-              // (num_unique_min < this->max_unique_min) &&
-              // ((!overlapping) ||
-              // (took_last && i > start))
-              //
               ((minimizer.hits <= this->hit_cap) ||
               (run_hits <= this->hard_hit_cap && selected_score + minimizer.score <= target_score) ||
               (took_last && i > start)) &&
               (num_unique_min < this->max_unique_min) &&
-              (!overlapping)
+              (overlapping == false)
             ) {
+
+            // cerr << "minimizer " << i << " passes with " << minimizer.hits << " hits; total number of selected min: " << num_unique_min << endl;     // TODO: tracks passing and nu m hits of each min
             // We should keep this minimizer instance because it is
             // sufficiently rare, or we want it to make target_score, or it is
             // the same sequence as the previous minimizer which we also took.
@@ -3129,18 +3154,20 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
             // }
 
             // set minimizer overlap as a reads
+            // cerr << "Right before" << endl;
             if (this->exclude_overlapping_min) {
-              // for (size_t i = minimizer.forward_offset() + minimizer.agglomeration_start; 
-                  // i < minimizer.forward_offset() + minimizer.agglomeration_start + minimizer.length; 
-                  // i++) {
-                // read_bit_vector[i] = true;
-              // }
-              size_t min_start = minimizer.forward_offset() + minimizer.agglomeration_start;
-              size_t min_end = minimizer.forward_offset() + minimizer.agglomeration_start + minimizer.length;
-              for (size_t i = min_start; i < min_end; i++) {
+
+              // size_t min_start = minimizer.forward_offset();
+              // size_t min_end = minimizer.forward_offset() + minimizer.length;
+
+              // cerr << "Read length: " << read_len << " start and end (" << min_start_index << ", " << min_start_index + min_len << ")" << endl;
+              // cerr << "   Forward offset: " << minimizer.forward_offset() << " , agglomeration_start: " << minimizer.agglomeration_start << " , min length: " << minimizer.length << endl;
+              // for (size_t i = min_start; i < min_end; i++) {
+              for (size_t i = min_start_index; i < min_start_index + min_len; i++) {
                 read_bit_vector[i] = true;
               }
             }
+            // cerr << "Right after" << endl;
 
             total_minimizer_occurances += minimizer.hits;
 
@@ -3202,9 +3229,8 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
     }
 
 
-    // TODO: print read, number miminizers in read, number of chosen minimizers, and total minimiaer hits
-    // cerr << aln.name() << "\t" <<  minimizers.size() << "\t" << this->max_unique_min << "\t" << total_minimizer_occurances << endl;
-    // cerr << aln.name() << "\t" << total_minimizer_occurances << endl;
+    // TODO: print read, number miminizers in read, number of chosen minimizers, and total minimizer hits
+    cerr << aln.name() << "\t" <<  minimizers.size() << "\t" << this->max_unique_min << "\t"<< total_minimizer_occurances << endl;
 
     if (this->track_provenance && this->track_correctness) {
         // Tag seeds with correctness based on proximity along paths to the input read's refpos
@@ -3310,7 +3336,6 @@ void MinimizerMapper::score_cluster(Cluster& cluster, size_t i, const std::vecto
 
     // Determine the minimizers that are present in the cluster.
     for (auto hit_index : cluster.seeds) {
-        // cerr << "Inserting:" << seeds[hit_index].source << endl;
         cluster.present.insert(seeds[hit_index].source);
         if (show_work) {
             #pragma omp critical (cerr)

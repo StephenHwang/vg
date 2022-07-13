@@ -344,26 +344,26 @@ void help_giraffe(char** argv) {
     << "  -c, --hit-cap INT             use all minimizers with at most INT hits [10]" << endl
     << "  -C, --hard-hit-cap INT        ignore all minimizers with more than INT hits [500]" << endl
     << "  -F, --score-fraction FLOAT    select minimizers between hit caps until score is FLOAT of total [0.9]" << endl
-    << "  -U, --max-min INT             use at maximum INT unique non-overlapping minimizers [500]" << endl
     << "  -D, --distance-limit INT      cluster using this distance limit [200]" << endl
     << "  -e, --max-extensions INT      extend up to INT clusters [800]" << endl
     << "  -a, --max-alignments INT      align up to INT extensions [8]" << endl
     << "  -s, --cluster-score INT       only extend clusters if they are within INT of the best score [50]" << endl
     << "  -S, --pad-cluster-score INT   also extend clusters within INT of above threshold to get a second-best cluster [0]" << endl
     << "  -u, --cluster-coverage FLOAT  only extend clusters if they are within FLOAT of the best read coverage [0.3]" << endl
+    << "  -U, --max-min INT             use at maximum INT unique non-overlapping minimizers [1000]" << endl
     << "  -v, --extension-score INT     only align extensions if their score is within INT of the best score [1]" << endl
     << "  -w, --extension-set INT       only align extension sets if their score is within INT of the best score [20]" << endl
     << "  -O, --no-dp                   disable all gapped alignment" << endl
     << "  -r, --rescue-attempts         attempt up to INT rescues per read in a pair [15]" << endl
     << "  -A, --rescue-algorithm NAME   use algorithm NAME for rescue (none / dozeu / gssw / haplotypes) [dozeu]" << endl
     << "  -L, --max-fragment-length INT assume that fragment lengths should be smaller than INT when estimating the fragment length distribution" << endl
-    << "  --seed-correct-dist INT       distance within which to consider seeds correct" << endl
+    << "  --exclude-overlapping-min     exclude overlapping minimizers" << endl
     << "  --fragment-mean FLOAT         force the fragment length distribution to have this mean (requires --fragment-stdev)" << endl
     << "  --fragment-stdev FLOAT        force the fragment length distribution to have this standard deviation (requires --fragment-mean)" << endl
     << "  --paired-distance-limit FLOAT cluster pairs of read using a distance limit FLOAT standard deviations greater than the mean [2.0]" << endl
     << "  --rescue-subgraph-size FLOAT  search for rescued alignments FLOAT standard deviations greater than the mean [4.0]" << endl
     << "  --rescue-seed-limit INT       attempt rescue with at most INT seeds [100]" << endl
-    << "  --exclude-overlapping-min     exclude overlapping minimizers" << endl
+    << "  --seed-correct-dist INT       distance within which to consider seeds correct" << endl
     << "  --track-provenance            track how internal intermediate alignment candidates were arrived at" << endl
     << "  --track-correctness           track if internal intermediate alignment candidates are correct (implies --track-provenance)" << endl
     << "  --track-clusters              track cluster specificity, size, and correctness" << endl
@@ -410,6 +410,8 @@ int main_giraffe(int argc, char** argv) {
     // distance within which to consider seeds correct
     size_t seed_correct_dist = 200; 
 
+    // Should we exclude overlapping minimizers
+    bool exclude_overlapping_min = false;
     bool show_progress = false;
     // Should we try chaining or just give up if we can't find a full length gapless alignment?
     bool do_dp = true;
@@ -475,9 +477,6 @@ int main_giraffe(int argc, char** argv) {
     bool track_clusters = false;
     // Should we log our mapping decision making?
     bool show_work = false;
-
-    /// Exclude overlapping minimizers?
-    bool exclude_overlapping_min = false;
 
     // Chain all the ranges and get a function that loops over all combinations.
     auto for_each_combo = distance_limit
@@ -558,10 +557,11 @@ int main_giraffe(int argc, char** argv) {
             {"cluster-score", required_argument, 0, 's'},
             {"pad-cluster-score", required_argument, 0, 'S'},
             {"cluster-coverage", required_argument, 0, 'u'},
+            {"max-min", required_argument, 0, 'U'},
+            {"exclude-overlapping-min", no_argument, 0, OPT_SHOW_EXCLUDE_OVERLAPPING_MIN},
             {"extension-score", required_argument, 0, 'v'},
             {"extension-set", required_argument, 0, 'w'},
             {"score-fraction", required_argument, 0, 'F'},
-            {"max-min", required_argument, 0, 'U'},
             {"no-dp", no_argument, 0, 'O'},
             {"rescue-attempts", required_argument, 0, 'r'},
             {"rescue-algorithm", required_argument, 0, 'A'},
@@ -576,13 +576,12 @@ int main_giraffe(int argc, char** argv) {
             {"track-correctness", no_argument, 0, OPT_TRACK_CORRECTNESS},
             {"track-clusters", no_argument, 0, OPT_TRACK_CLUSTERS},
             {"show-work", no_argument, 0, OPT_SHOW_WORK},
-            {"exclude-overlapping-min", no_argument, 0, OPT_SHOW_EXCLUDE_OVERLAPPING_MIN},
             {"threads", required_argument, 0, 't'},
             {0, 0, 0, 0}
         };
 
         int option_index = 0;
-        c = getopt_long (argc, argv, "hZ:x:g:H:m:s:d:pG:f:iM:N:R:o:Pnb:c:C:D:F:e:a:S:u:v:w:Ot:r:A:L:U:",
+        c = getopt_long (argc, argv, "hZ:x:g:H:m:s:d:pG:f:iM:N:R:o:Pnb:c:C:D:F:e:a:S:u:U:v:w:Ot:r:A:L:",
                          long_options, &option_index);
 
 
@@ -1258,12 +1257,12 @@ int main_giraffe(int argc, char** argv) {
             s << "-c" << hit_cap;
             s << "-C" << hard_hit_cap;
             s << "-F" << minimizer_score_fraction;
-            s << "-U" << max_unique_min;
             s << "-M" << max_multimaps;
             s << "-e" << max_extensions;
             s << "-a" << max_alignments;
             s << "-s" << cluster_score;
             s << "-u" << cluster_coverage;
+            s << "-U" << max_unique_min;
             s << "-w" << extension_set;
             s << "-v" << extension_score;
 
