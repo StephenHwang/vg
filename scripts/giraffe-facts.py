@@ -277,6 +277,7 @@ def add_in_stats(destination, addend):
         else:
             # Use real += and hope it works
             destination[k] += v
+    return destination
 
 def read_line_oriented_json(lines):
     """
@@ -911,11 +912,11 @@ def main(args):
         stats, correct_min_coverage = make_stats(read)
         correct_min_coverage_list.append(correct_min_coverage)
 
-        if stats_total is None:
+        if stats_total is None or len(stats_total) == 0:
             stats_total = stats
         else:
             # Sum up all the stats
-            add_in_stats(stats_total, stats)
+            stats_total = add_in_stats(stats_total, stats)
 
         # Count the read
         read_count += 1
