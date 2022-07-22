@@ -255,26 +255,6 @@ vector<Alignment> MinimizerMapper::map(Alignment& aln) {
           sum_cluster_scores += cluster.score;
         }
 
-
-//            minimizer_extended_cluster_count.emplace_back(minimizers.size(), 0);
-//            // Pack the seeds for GaplessExtender.
-//            GaplessExtender::cluster_type seed_matchings;
-//            for (auto seed_index : cluster.seeds) {
-//                // Insert the (graph position, read offset) pair.
-//                const Seed& seed = seeds[seed_index];
-//                seed_matchings.insert(GaplessExtender::to_seed(seed.pos, minimizers[seed.source].value.offset));
-//                minimizer_extended_cluster_count.back()[seed.source]++;
-//
-//                if (show_work) {
-//                    #pragma omp critical (cerr)
-//                    {
-//                        const Minimizer& minimizer = minimizers[seed.source];
-//                        cerr << log_name() << "Seed read:" << minimizer.value.offset << " = " << seed.pos
-//                            << " from minimizer " << seed.source << "(" << minimizer.hits << "), #" << seed_index << endl;
-//                    }
-//                }
-//            }
-
         if (this->track_clusters) {
 
             size_t curr_cluster_left_start = 100000000;
@@ -3078,6 +3058,8 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
 
     // TODO: read name, number minimizers, total info content
     size_t total_minimizer_occurances = 0;
+    double curr_score = 0.0;   // sum score (if selected, just re-run for non-overlap vs overlap)
+    double cum_score = 0.0;   // sum score (if selected, just re-run for non-overlap vs overlap)
 
     // Select the minimizers we use for seeds.
     size_t rejected_count = 0;
@@ -3107,8 +3089,7 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
         // Select the minimizer if it is informative enough or if the total score
         // of the selected minimizers is not high enough.
         const Minimizer& minimizer = minimizers[i];
-
-        cerr << "minimizer " << i << " with " << minimizer.hits << " hits; total number of selected min: " << num_unique_min << endl;     // TODO: tracks passing and nu m hits of each min
+        cum_score += minimizer.score;  // sum score (if selected, just re-run for non-overlap vs overlap)
 
         // minimizer information
         // size_t min_start_index = minimizer.agglomeration_start + minimizer.forward_offset();
@@ -3140,6 +3121,13 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
               (num_unique_min < this->max_unique_min) &&
               (overlapping == false)
             ) {
+
+            curr_score += minimizer.score;  // sum score (if selected, just re-run for non-overlap vs overlap)
+
+            if (i % 10 == 0) {
+              cerr << "parse_min" << "\t" << aln.name() << "\t" << i << "\t" << minimizer.hits << "\t" << minimizer.score << "\t" << num_unique_min << "\t" << curr_score << "\t" << cum_score << "\t"<< base_target_score << endl;     // TODO: tracks passing and nu m hits of each min
+            }
+
 
             // cerr << "minimizer " << i << " passes with " << minimizer.hits << " hits; total number of selected min: " << num_unique_min << endl;     // TODO: tracks passing and nu m hits of each min
             // We should keep this minimizer instance because it is
