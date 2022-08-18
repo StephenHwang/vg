@@ -3054,12 +3054,14 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
     }
 
     size_t read_len = aln.sequence().size();
+    size_t num_min_by_read_len = read_len / this->num_bp_per_min;
     std::vector<bool> read_bit_vector (read_len, false);    // bit vector the length of the read
 
     // TODO: read name, number minimizers, total info content
     size_t total_minimizer_occurances = 0;
-    double curr_score = 0.0;   // sum score (if selected, just re-run for non-overlap vs overlap)
-    double cum_score = 0.0;   // sum score (if selected, just re-run for non-overlap vs overlap)
+    // double curr_score = 0.0;   // sum score (if selected, just re-run for non-overlap vs overlap)
+    // double cum_score = 0.0;   // sum score (if selected, just re-run for non-overlap vs overlap)
+
 
     // Select the minimizers we use for seeds.
     size_t rejected_count = 0;
@@ -3089,12 +3091,16 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
         // Select the minimizer if it is informative enough or if the total score
         // of the selected minimizers is not high enough.
         const Minimizer& minimizer = minimizers[i];
-        cum_score += minimizer.score;  // sum score (if selected, just re-run for non-overlap vs overlap)
+        // cum_score += minimizer.score;  // sum score (if selected, just re-run for non-overlap vs overlap)
 
         // minimizer information
         // size_t min_start_index = minimizer.agglomeration_start + minimizer.forward_offset();
         size_t min_start_index = minimizer.forward_offset();
         size_t min_len = minimizer.length;
+
+        cerr << "num min by read len: " << num_min_by_read_len << "; num_bp_per_min: " << this->num_bp_per_min << "; read_len: " << read_len << endl;
+
+
         bool overlapping = false;
         if (this->exclude_overlapping_min) {
           // cerr << "checking overlap for minimizer: " << i << " ... " ;
@@ -3118,15 +3124,18 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
               ((minimizer.hits <= this->hit_cap) ||
               (run_hits <= this->hard_hit_cap && selected_score + minimizer.score <= target_score) ||
               (took_last && i > start)) &&
-              (num_unique_min < this->max_unique_min) &&
+              (num_unique_min < ( max(this->max_unique_min, num_min_by_read_len) )) &&
               (overlapping == false)
             ) {
 
-            curr_score += minimizer.score;  // sum score (if selected, just re-run for non-overlap vs overlap)
+            // cerr << "choosing min: " << num_unique_min << " as under max of: " << max(this->max_unique_min, num_min_by_read_len) 
+              // << " from: " <<  this->max_unique_min << " and num_min_by_read_len: " << num_min_by_read_len << endl;
 
-            if (i % 10 == 0) {
-              cerr << "parse_min" << "\t" << aln.name() << "\t" << i << "\t" << minimizer.hits << "\t" << minimizer.score << "\t" << num_unique_min << "\t" << curr_score << "\t" << cum_score << "\t"<< base_target_score << endl;     // TODO: tracks passing and nu m hits of each min
-            }
+
+            // curr_score += minimizer.score;  // sum score (if selected, just re-run for non-overlap vs overlap)
+            // if (i % 10 == 0) {
+              // cerr << "parse_min" << "\t" << aln.name() << "\t" << i << "\t" << minimizer.hits << "\t" << minimizer.score << "\t" << num_unique_min << "\t" << curr_score << "\t" << cum_score << "\t"<< base_target_score << endl;     // TODO: tracks passing and nu m hits of each min
+            // }
 
 
             // cerr << "minimizer " << i << " passes with " << minimizer.hits << " hits; total number of selected min: " << num_unique_min << endl;     // TODO: tracks passing and nu m hits of each min
@@ -3138,8 +3147,11 @@ std::vector<MinimizerMapper::Seed> MinimizerMapper::find_seeds(const std::vector
             // if (!(took_last && i > start)) {
               num_unique_min += 1;
               // TODO: print taking this miminizer
-              // cerr << " selecting min_idx " << i << " the " << num_unique_min << "th unique min with " << minimizer.hits << " hits, " << minimizer.score << " score starting at pos: " << minimizer.agglomeration_start << " with seq: " << minimizer.value.key.decode(minimizer.length) << endl;    // minimizer itself
+              cerr << aln.name() << "\t" << i << "\t" << num_unique_min << "\t" << minimizer.hits << "\t" << minimizer.score << "\t" << minimizer.agglomeration_start << endl;    // minimizer itself
+              // cerr << aln.name() << "\t" << i << "\t" << num_unique_min << "\t" << minimizer.hits << "\t" << minimizer.score << "\t" << minimizer.agglomeration_start << " with seq: " << minimizer.value.key.decode(minimizer.length) << endl;    // minimizer itself
             // }
+
+
 
             // set minimizer overlap as a reads
             // cerr << "Right before" << endl;
